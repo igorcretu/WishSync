@@ -1,6 +1,6 @@
 import React from 'react';
 import type { ViewId, Wish, Occasion, HistoryItem, Person } from './types';
-import { Sidebar } from './components';
+import { Sidebar, MobileNav } from './components';
 import {
   Dashboard, PartnerList, MyList, DetailView, OccasionsView,
   HistoryView, GroupsView, ProfileView, SecretOverlay, AddWishModal,
@@ -281,7 +281,7 @@ const AppInner: React.FC = () => {
       case 'partner':
         return <PartnerList wishes={partnerWishes} partner={effectivePartner} me={me} onOpen={w => openDetail(w, 'partner')} onReserve={handleReserveClick} />;
       case 'mine':
-        return <MyList wishes={myWishes} me={me} onOpen={w => openDetail(w, 'mine')} onAdd={() => setShowAdd(true)} />;
+        return <MyList wishes={myWishes} me={me} onOpen={w => openDetail(w, 'mine')} onAdd={() => setShowAdd(true)} partnerName={effectivePartner.name} friendsCount={friends.length} />;
       case 'detail':
         return detailWish && <DetailView wish={detailWish} mode={detailMode} me={me} partner={effectivePartner} friends={friends} onBack={() => setView(detailMode === 'partner' ? 'partner' : 'mine')} onReserve={handleReserveClick} />;
       case 'occasions':
@@ -303,6 +303,7 @@ const AppInner: React.FC = () => {
     <div className="app">
       <Sidebar currentView={view} onNav={setView} me={me} newCount={newCount} partnerNickname={effectivePartner.nickname} />
       <main className="main">{renderView()}</main>
+      <MobileNav currentView={view} onNav={setView} partnerNickname={effectivePartner.nickname} />
 
       {secretWish && (
         <SecretOverlay

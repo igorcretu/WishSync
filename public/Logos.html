@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>WishSync — Logo set</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css" />
+<style>
+  body { padding: 48px; background: var(--cream); }
+  .hdr { max-width: 1200px; margin: 0 auto 32px; }
+  .hdr h1 { font-family: var(--font-display); font-size: 44px; letter-spacing: -0.02em; }
+  .hdr p { color: var(--ink-muted); margin-top: 6px; }
+
+  .grid {
+    max-width: 1200px; margin: 0 auto;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 22px;
+  }
+  .cell {
+    background: var(--paper); border-radius: var(--radius-lg); padding: 22px;
+    box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 14px;
+    min-height: 220px;
+  }
+  .cell.dark { background: var(--ink); color: var(--cream); }
+  .cell.peach { background: var(--peach); }
+  .cell.blush { background: var(--blush); }
+  .cell.butter { background: var(--butter); }
+  .cell.sage { background: var(--sage); }
+  .cell.cream { background: var(--cream-2); }
+
+  .stage {
+    flex: 1; display: grid; place-items: center;
+    min-height: 140px;
+  }
+  .tag {
+    font-family: var(--font-ui); font-weight: 700; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    color: currentColor; opacity: 0.55;
+  }
+
+  .icon-row {
+    display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
+  }
+
+  .section-title {
+    font-family: var(--font-display); font-size: 22px;
+    margin: 32px auto 14px; max-width: 1200px;
+  }
+
+  .favicon-row {
+    display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
+  }
+  .favicon-row > div {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    font-size: 11px; color: var(--ink-muted); font-weight: 700;
+  }
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <h1>WishSync <em style="font-style: italic; color: var(--peach-deep);">marks.</em></h1>
+  <p>A set of logos for app icon, favicon, navigation, and wordmark use. Each one is pure SVG — drop into <code>public/</code> or inline.</p>
+</div>
+
+<div class="section-title">1 · Primary marks</div>
+<div class="grid">
+
+  <!-- A. Linked gift tags -->
+  <div class="cell">
+    <div class="stage">
+      <!-- Two gift-tag shapes linked by a loop -->
+      <svg width="140" height="140" viewBox="0 0 140 140">
+        <defs>
+          <clipPath id="tagA"><path d="M22 40 L62 12 L102 40 L102 100 Q102 112 90 112 L34 112 Q22 112 22 100 Z"/></clipPath>
+        </defs>
+        <!-- back tag (blush) -->
+        <g transform="translate(20 22) rotate(-8 62 62)">
+          <path d="M22 40 L62 12 L102 40 L102 100 Q102 112 90 112 L34 112 Q22 112 22 100 Z"
+                fill="#F2C2C9" stroke="#2B2420" stroke-width="3"/>
+          <circle cx="62" cy="34" r="5" fill="#2B2420"/>
+        </g>
+        <!-- front tag (peach) -->
+        <g transform="translate(-2 16) rotate(6 62 62)">
+          <path d="M22 40 L62 12 L102 40 L102 100 Q102 112 90 112 L34 112 Q22 112 22 100 Z"
+                fill="#F6B89A" stroke="#2B2420" stroke-width="3"/>
+          <circle cx="62" cy="34" r="5" fill="#2B2420"/>
+          <!-- heart on the front tag -->
+          <path d="M62 78 C 50 66, 42 74, 50 82 C 55 88, 62 92, 62 92 C 62 92, 69 88, 74 82 C 82 74, 74 66, 62 78 Z"
+                fill="#2B2420"/>
+        </g>
+      </svg>
+    </div>
+    <div class="tag">A · Linked gift tags</div>
+    <div style="font-size: 13px; color: var(--ink-muted);">Two gift tags slightly overlapping — two people, one wishlist.</div>
+  </div>
+
+  <!-- B. Infinity heart -->
+  <div class="cell peach">
+    <div class="stage">
+      <svg width="160" height="120" viewBox="0 0 160 120">
+        <!-- Infinity made of two heart lobes -->
+        <path d="M 40 60
+                 C 40 30, 80 30, 80 60
+                 C 80 90, 120 90, 120 60
+                 C 120 30, 80 30, 80 60
+                 C 80 90, 40 90, 40 60 Z"
+              fill="none" stroke="#2B2420" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/>
+        <!-- Little notch at bottom of each heart lobe -->
+        <path d="M48 70 L 58 76 L 68 70" fill="none" stroke="#2B2420" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M92 70 L 102 76 L 112 70" fill="none" stroke="#2B2420" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="tag">B · Heart-infinity</div>
+    <div style="font-size: 13px;">Two hearts, in sync.</div>
+  </div>
+
+  <!-- C. W ribbon -->
+  <div class="cell butter">
+    <div class="stage">
+      <svg width="160" height="140" viewBox="0 0 160 140">
+        <!-- W made of ribbon, with knot in the middle -->
+        <path d="M 20 30 L 50 110 L 80 60 L 110 110 L 140 30"
+              fill="none" stroke="#2B2420" stroke-width="14" stroke-linejoin="round" stroke-linecap="round"/>
+        <!-- knot -->
+        <circle cx="80" cy="60" r="12" fill="#E89671" stroke="#2B2420" stroke-width="3"/>
+        <path d="M80 48 L80 36 M 72 40 L 88 36" stroke="#2B2420" stroke-width="3" stroke-linecap="round" fill="none"/>
+      </svg>
+    </div>
+    <div class="tag">C · Ribbon W</div>
+    <div style="font-size: 13px;">The 'W' tied with a gift knot.</div>
+  </div>
+
+  <!-- D. Present with sparkle -->
+  <div class="cell sage">
+    <div class="stage">
+      <svg width="130" height="130" viewBox="0 0 130 130">
+        <!-- Rounded gift box -->
+        <rect x="20" y="44" width="90" height="72" rx="14" fill="#FFFDF8" stroke="#2B2420" stroke-width="4"/>
+        <!-- Ribbon vertical -->
+        <rect x="58" y="44" width="14" height="72" fill="#E89671" stroke="#2B2420" stroke-width="3"/>
+        <!-- Lid -->
+        <rect x="14" y="36" width="102" height="20" rx="6" fill="#F2C2C9" stroke="#2B2420" stroke-width="4"/>
+        <rect x="58" y="36" width="14" height="20" fill="#E89671" stroke="#2B2420" stroke-width="3"/>
+        <!-- Bow loops -->
+        <ellipse cx="52" cy="28" rx="12" ry="9" fill="#E89671" stroke="#2B2420" stroke-width="3"/>
+        <ellipse cx="78" cy="28" rx="12" ry="9" fill="#E89671" stroke="#2B2420" stroke-width="3"/>
+        <circle cx="65" cy="28" r="5" fill="#2B2420"/>
+        <!-- Sparkle -->
+        <path d="M106 18 L 109 26 L 117 29 L 109 32 L 106 40 L 103 32 L 95 29 L 103 26 Z" fill="#2B2420"/>
+      </svg>
+    </div>
+    <div class="tag">D · Wrapped present + spark</div>
+    <div style="font-size: 13px;">Classic & warm — great for hero.</div>
+  </div>
+
+  <!-- E. Orbit -->
+  <div class="cell blush">
+    <div class="stage">
+      <svg width="150" height="150" viewBox="0 0 150 150">
+        <!-- Orbit ellipse -->
+        <ellipse cx="75" cy="75" rx="56" ry="20" fill="none" stroke="#2B2420" stroke-width="3" transform="rotate(-20 75 75)"/>
+        <!-- Central heart -->
+        <path d="M75 90 C 60 74, 50 86, 60 96 C 67 103, 75 108, 75 108 C 75 108, 83 103, 90 96 C 100 86, 90 74, 75 90 Z"
+              fill="#F6B89A" stroke="#2B2420" stroke-width="3"/>
+        <!-- Two orbiting dots -->
+        <circle cx="23" cy="62" r="8" fill="#2B2420"/>
+        <circle cx="127" cy="88" r="8" fill="#FFFDF8" stroke="#2B2420" stroke-width="3"/>
+      </svg>
+    </div>
+    <div class="tag">E · Heart in orbit</div>
+    <div style="font-size: 13px;">Two people circling a shared wish.</div>
+  </div>
+
+  <!-- F. Monoline W -->
+  <div class="cell dark">
+    <div class="stage">
+      <svg width="160" height="120" viewBox="0 0 160 120">
+        <!-- Single-stroke W+S continuous path forming a subtle heart at bottom -->
+        <path d="M 20 20
+                 L 40 90
+                 L 60 40
+                 L 80 80
+                 Q 80 95, 95 95
+                 Q 110 95, 110 80
+                 L 130 40
+                 L 150 20"
+              fill="none" stroke="#F6B89A" stroke-width="8" stroke-linejoin="round" stroke-linecap="round"/>
+        <circle cx="80" cy="80" r="5" fill="#F6B89A"/>
+      </svg>
+    </div>
+    <div class="tag" style="color: var(--peach);">F · Monoline sync</div>
+    <div style="font-size: 13px; color: rgba(255,255,255,0.7);">One unbroken line — minimal nav use.</div>
+  </div>
+
+</div>
+
+<div class="section-title">2 · App icon (squircle)</div>
+<div class="grid">
+  <div class="cell">
+    <div class="stage">
+      <svg width="180" height="180" viewBox="0 0 180 180">
+        <defs>
+          <linearGradient id="sq1" x1="0" x2="1" y1="0" y2="1">
+            <stop offset="0%" stop-color="#F6B89A"/>
+            <stop offset="100%" stop-color="#F2C2C9"/>
+          </linearGradient>
+        </defs>
+        <rect x="0" y="0" width="180" height="180" rx="40" fill="url(#sq1)"/>
+        <!-- Mark: two hearts overlapping like a venn -->
+        <path d="M70 92 C 52 72, 36 88, 50 104 C 60 114, 76 124, 76 124 C 76 124, 78 122, 78 122" fill="#2B2420"/>
+        <path d="M110 92 C 128 72, 144 88, 130 104 C 120 114, 104 124, 104 124 C 104 124, 102 122, 102 122" fill="#FFFDF8"/>
+        <!-- overlap -->
+        <path d="M90 98
+                 C 78 86, 68 96, 76 106
+                 C 84 116, 90 122, 90 122
+                 C 90 122, 96 116, 104 106
+                 C 112 96, 102 86, 90 98 Z" fill="#2B2420"/>
+        <circle cx="90" cy="104" r="6" fill="#F6E2A8"/>
+      </svg>
+    </div>
+    <div class="tag">iOS / Android icon — peach gradient</div>
+  </div>
+
+  <div class="cell">
+    <div class="stage">
+      <svg width="180" height="180" viewBox="0 0 180 180">
+        <rect x="0" y="0" width="180" height="180" rx="40" fill="#2B2420"/>
+        <!-- gift tag shape -->
+        <path d="M40 70 L90 30 L140 70 L140 140 Q140 152 128 152 L52 152 Q40 152 40 140 Z"
+              fill="#F6B89A"/>
+        <circle cx="90" cy="60" r="6" fill="#2B2420"/>
+        <!-- string -->
+        <path d="M90 60 Q70 46 52 40" stroke="#FFFDF8" stroke-width="3" fill="none" stroke-linecap="round"/>
+        <!-- heart on tag -->
+        <path d="M90 112 C 74 96, 64 108, 74 118 C 82 126, 90 130, 90 130 C 90 130, 98 126, 106 118 C 116 108, 106 96, 90 112 Z" fill="#2B2420"/>
+      </svg>
+    </div>
+    <div class="tag">Dark variant</div>
+  </div>
+
+  <div class="cell">
+    <div class="stage">
+      <svg width="180" height="180" viewBox="0 0 180 180">
+        <rect x="0" y="0" width="180" height="180" rx="40" fill="#FBF5EC"/>
+        <!-- Speech/cloud w/ heart -->
+        <g transform="translate(0 4)">
+        <ellipse cx="90" cy="88" rx="58" ry="42" fill="#F6E2A8" stroke="#2B2420" stroke-width="4"/>
+        <path d="M90 104 C 70 84, 54 100, 70 114 C 80 124, 90 132, 90 132 C 90 132, 100 124, 110 114 C 126 100, 110 84, 90 104 Z" fill="#E89671" stroke="#2B2420" stroke-width="3"/>
+        <circle cx="70" cy="78" r="4" fill="#2B2420"/>
+        <circle cx="110" cy="78" r="4" fill="#2B2420"/>
+        </g>
+      </svg>
+    </div>
+    <div class="tag">Cozy mascot (cloud-heart)</div>
+  </div>
+</div>
+
+<div class="section-title">3 · Wordmarks</div>
+<div class="grid">
+  <div class="cell" style="grid-column: span 2;">
+    <div class="stage">
+      <svg width="440" height="110" viewBox="0 0 440 110">
+        <!-- mark -->
+        <g transform="translate(6 16)">
+          <rect x="0" y="0" width="72" height="72" rx="20" fill="#F6B89A"/>
+          <path d="M36 44 C 22 32, 14 42, 22 50 C 28 56, 36 60, 36 60 C 36 60, 44 56, 50 50 C 58 42, 50 32, 36 44 Z" fill="#2B2420"/>
+          <circle cx="56" cy="22" r="4" fill="#2B2420"/>
+        </g>
+        <text x="96" y="72" font-family="DM Serif Display, serif" font-size="60" fill="#2B2420" letter-spacing="-2">
+          WishSync<tspan font-style="italic" fill="#E89671">.</tspan>
+        </text>
+      </svg>
+    </div>
+    <div class="tag">Horizontal lockup · primary</div>
+  </div>
+
+  <div class="cell cream">
+    <div class="stage">
+      <svg width="260" height="220" viewBox="0 0 260 220">
+        <g transform="translate(94 16)">
+          <rect x="0" y="0" width="72" height="72" rx="20" fill="#2B2420"/>
+          <path d="M36 44 C 22 32, 14 42, 22 50 C 28 56, 36 60, 36 60 C 36 60, 44 56, 50 50 C 58 42, 50 32, 36 44 Z" fill="#F6B89A"/>
+          <circle cx="56" cy="22" r="4" fill="#F6B89A"/>
+        </g>
+        <text x="130" y="130" text-anchor="middle" font-family="DM Serif Display, serif" font-size="38" fill="#2B2420" letter-spacing="-1">
+          WishSync
+        </text>
+        <text x="130" y="158" text-anchor="middle" font-family="Nunito, sans-serif" font-size="11" font-weight="800" fill="#8B7F74" letter-spacing="4">
+          GIFTING · TOGETHER
+        </text>
+        <line x1="96" y1="176" x2="164" y2="176" stroke="#E8DCC8" stroke-width="2" stroke-dasharray="2 3"/>
+      </svg>
+    </div>
+    <div class="tag">Stacked lockup with tagline</div>
+  </div>
+
+  <div class="cell dark">
+    <div class="stage">
+      <svg width="300" height="80" viewBox="0 0 300 80">
+        <text x="0" y="54" font-family="DM Serif Display, serif" font-style="italic" font-size="52" fill="#F6B89A" letter-spacing="-1">
+          wishsync
+        </text>
+        <circle cx="288" cy="50" r="6" fill="#F6B89A"/>
+      </svg>
+    </div>
+    <div class="tag" style="color: var(--peach);">All-lowercase italic</div>
+  </div>
+</div>
+
+<div class="section-title">4 · Favicons / tiny nav marks</div>
+<div style="max-width: 1200px; margin: 0 auto;">
+  <div class="cell">
+    <div class="favicon-row">
+      <div>
+        <svg width="64" height="64" viewBox="0 0 64 64">
+          <rect width="64" height="64" rx="14" fill="#F6B89A"/>
+          <path d="M32 32 C 22 22, 14 30, 20 38 C 24 42, 32 46, 32 46 C 32 46, 40 42, 44 38 C 50 30, 42 22, 32 32 Z" fill="#2B2420"/>
+        </svg>
+        <span>64 · peach</span>
+      </div>
+      <div>
+        <svg width="48" height="48" viewBox="0 0 64 64">
+          <rect width="64" height="64" rx="14" fill="#2B2420"/>
+          <path d="M32 32 C 22 22, 14 30, 20 38 C 24 42, 32 46, 32 46 C 32 46, 40 42, 44 38 C 50 30, 42 22, 32 32 Z" fill="#F6B89A"/>
+        </svg>
+        <span>48 · dark</span>
+      </div>
+      <div>
+        <svg width="32" height="32" viewBox="0 0 64 64">
+          <rect width="64" height="64" rx="14" fill="#FBF5EC"/>
+          <path d="M32 32 C 22 22, 14 30, 20 38 C 24 42, 32 46, 32 46 C 32 46, 40 42, 44 38 C 50 30, 42 22, 32 32 Z" fill="#E89671"/>
+        </svg>
+        <span>32 · cream</span>
+      </div>
+      <div>
+        <svg width="24" height="24" viewBox="0 0 64 64">
+          <path d="M32 12 L 54 32 L 54 52 Q 54 58 48 58 L 16 58 Q 10 58 10 52 L 10 32 Z" fill="#F6B89A" stroke="#2B2420" stroke-width="4"/>
+          <path d="M32 40 C 24 32, 18 38, 22 42 C 26 46, 32 50, 32 50 C 32 50, 38 46, 42 42 C 46 38, 40 32, 32 40 Z" fill="#2B2420"/>
+        </svg>
+        <span>24 · tag</span>
+      </div>
+      <div>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2B2420" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20.4 4.6a5.5 5.5 0 00-7.8 0L12 5.2l-.6-.6a5.5 5.5 0 00-7.8 7.8l.6.6L12 21l7.8-8 .6-.6a5.5 5.5 0 000-7.8z"/>
+        </svg>
+        <span>20 · stroke</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section-title">5 · Usage on surface</div>
+<div class="grid">
+  <!-- Sidebar mock -->
+  <div class="cell" style="grid-column: span 2; background: var(--cream-2); padding: 0; overflow: hidden;">
+    <div style="display: flex; align-items: center; gap: 12px; padding: 28px 24px; font-family: var(--font-display); font-size: 28px;">
+      <svg width="44" height="44" viewBox="0 0 64 64">
+        <rect width="64" height="64" rx="16" fill="#F6B89A"/>
+        <path d="M32 32 C 22 22, 14 30, 20 38 C 24 42, 32 46, 32 46 C 32 46, 40 42, 44 38 C 50 30, 42 22, 32 32 Z" fill="#2B2420"/>
+      </svg>
+      WishSync
+    </div>
+    <div style="padding: 0 24px 24px; font-size: 13px; color: var(--ink-muted); font-family: var(--font-ui);">Sidebar lockup</div>
+  </div>
+
+  <!-- Login card -->
+  <div class="cell" style="background: var(--paper); text-align: center;">
+    <svg width="72" height="72" viewBox="0 0 72 72" style="margin: 18px auto 0;">
+      <rect width="72" height="72" rx="18" fill="#2B2420"/>
+      <path d="M36 36 C 26 26, 18 34, 24 42 C 28 46, 36 50, 36 50 C 36 50, 44 46, 48 42 C 54 34, 46 26, 36 36 Z" fill="#F6B89A"/>
+    </svg>
+    <div style="font-family: var(--font-display); font-size: 28px; margin-top: 14px;">Welcome back.</div>
+    <div style="color: var(--ink-muted); font-size: 14px;">Sign in to your gifting circle.</div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -99,6 +99,34 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNav, me, newCou
   );
 };
 
+interface MobileNavProps {
+  currentView: ViewId;
+  onNav: (v: ViewId) => void;
+  partnerNickname?: string;
+}
+export const MobileNav: React.FC<MobileNavProps> = ({ currentView, onNav, partnerNickname = 'Partner' }) => {
+  const items: { id: ViewId; icon: React.FC<IconProps>; label: string }[] = [
+    { id: 'dashboard', icon: IconHome, label: 'Home' },
+    { id: 'partner', icon: IconHeart, label: partnerNickname },
+    { id: 'mine', icon: IconGift, label: 'My list' },
+    { id: 'occasions', icon: IconCal, label: 'Occasions' },
+    { id: 'profile', icon: IconUser, label: 'Profile' },
+  ];
+  return (
+    <nav className="mobile-nav">
+      {items.map(it => {
+        const I = it.icon;
+        return (
+          <button key={it.id} className={`mobile-nav-item ${currentView === it.id ? 'active' : ''}`} onClick={() => onNav(it.id)}>
+            <I size={22} />
+            <span>{it.label}</span>
+          </button>
+        );
+      })}
+    </nav>
+  );
+};
+
 interface WishCardProps {
   wish: Wish;
   mode: "partner" | "mine";

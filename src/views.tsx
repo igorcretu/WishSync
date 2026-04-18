@@ -2,7 +2,7 @@
 
 import React from 'react';
 import type { Wish, Person, Occasion, HistoryItem, ViewId, Priority, OccasionTag } from './types';
-import { circles as circleApi } from './api';
+import { circles as circleApi, wishes as wishApi } from './api';
 import type { ApiCircle } from './api';
 import { CATEGORIES, OCCASION_TAGS, PRIORITY_LABELS, PH } from './data';
 import {
@@ -51,6 +51,12 @@ export const PartnerList: React.FC<PartnerListProps> = ({ wishes, partner, me, o
   const [cat, setCat] = React.useState<string>("All");
   const [pri, setPri] = React.useState<string>("All");
 
+  const doSurprise = () => {
+    const unreserved = wishes.filter(w => !w.reserved);
+    if (unreserved.length === 0) return;
+    onReserve(unreserved[Math.floor(Math.random() * unreserved.length)]);
+  };
+
   const filtered = wishes.filter(w => {
     if (cat !== "All" && w.category !== cat) return false;
     if (pri === "Must have" && w.priority !== "must") return false;
@@ -72,7 +78,7 @@ export const PartnerList: React.FC<PartnerListProps> = ({ wishes, partner, me, o
         actions={
           <>
             <button className="btn btn-ghost"><IconSearch size={15} /> Search</button>
-            <button className="btn btn-primary"><IconSparkle size={15} /> Surprise mode</button>
+            <button className="btn btn-primary" onClick={doSurprise}><IconSparkle size={15} /> Surprise mode</button>
           </>
         }
       />
@@ -119,15 +125,17 @@ interface MyListProps {
   me: Person;
   onOpen: (w: Wish) => void;
   onAdd: () => void;
+  partnerName?: string;
+  friendsCount?: number;
 }
-export const MyList: React.FC<MyListProps> = ({ wishes, me, onOpen, onAdd }) => {
+export const MyList: React.FC<MyListProps> = ({ wishes, me, onOpen, onAdd, partnerName = 'Partner', friendsCount = 0 }) => {
   return (
     <>
       <PageHeader
         eyebrow="Your wishlist"
         title="Things I"
         accent="love."
-        subtitle={`${wishes.length} wishes · shared with Theo + 3 others`}
+        subtitle={`${wishes.length} wishes · shared with ${partnerName}${friendsCount > 0 ? ` + ${friendsCount} others` : ''}`}
         actions={
           <>
             <button className="btn btn-ghost"><IconLink size={15} /> Quick add</button>
@@ -289,7 +297,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ partnerWishes, myWishes, m
     <>
       <PageHeader
         eyebrow={`Good afternoon, ${me.name}`}
-        title="You & Theo,"
+        title={`You & ${partner.name},`}
         accent="synced."
         subtitle="Your shared gifting world at a glance."
       />
@@ -309,8 +317,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ partnerWishes, myWishes, m
         </div>
         <div className="dash-tile butter" onClick={() => onNav("occasions")} style={{ cursor: "pointer" }}>
           <div className="dash-label">Next occasion</div>
-          <div className="dash-value" style={{ fontSize: 30 }}>{nextOccasion.title}</div>
-          <div className="dash-sub">{nextOccasion.daysAway} days — {nextOccasion.date}</div>
+          {nextOccasion ? (
+            <>
+              <div className="dash-value" style={{ fontSize: 30 }}>{nextOccasion.title}</div>
+              <div className="dash-sub">{nextOccasion.daysAway} days — {nextOccasion.date}</div>
+            </>
+          ) : (
+            <>
+              <div className="dash-value" style={{ fontSize: 22 }}>None yet</div>
+              <div className="dash-sub">Add one in Occasions</div>
+            </>
+          )}
           <div className="dash-deco">🎂</div>
         </div>
         <div className="dash-tile ink">
@@ -325,7 +342,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ partnerWishes, myWishes, m
 
       <div className="section">
         <div className="section-header">
-          <h2 className="section-title">Theo's top picks</h2>
+          <h2 className="section-title">{partner.name}'s top picks</h2>
           <button className="btn btn-ghost btn-sm" onClick={() => onNav("partner")}>See all →</button>
         </div>
         <div className="wish-grid">
@@ -371,22 +388,33 @@ export const AddWishModal: React.FC<AddWishModalProps> = ({ onClose, onAdd }) =>
   const [step, setStep] = React.useState<"link" | "details">("link");
   const [url, setUrl] = React.useState<string>("");
   const [loading, setLoading] = React.useState<boolean>(false);
+  const [scrapeError, setScrapeError] = React.useState<string>("");
+  const [scrapeImageUrl, setScrapeImageUrl] = React.useState<string>("");
   const [title, setTitle] = React.useState<string>("");
   const [price, setPrice] = React.useState<string>("");
   const [store, setStore] = React.useState<string>("");
+  const [category, setCategory] = React.useState<string>("Kitchen");
   const [priority, setPriority] = React.useState<Priority>("love");
   const [occasion, setOccasion] = React.useState<OccasionTag>("Just because");
   const [notes, setNotes] = React.useState<string>("");
 
-  const doQuickAdd = () => {
+  const doQuickAdd = async () => {
+    if (!url.trim()) { setStep("details"); return; }
     setLoading(true);
-    setTimeout(() => {
-      setTitle("Fellow Stagg EKG Kettle");
-      setStore("Fellow Products");
-      setPrice("195");
-      setLoading(false);
+    setScrapeError("");
+    try {
+      const data = await wishApi.scrape(url.trim());
+      if (data.title) setTitle(data.title);
+      if (data.store) setStore(data.store);
+      if (data.price) setPrice(String(data.price));
+      if (data.image) setScrapeImageUrl(data.image);
       setStep("details");
-    }, 1400);
+    } catch {
+      setScrapeError("Couldn't read that page — fill in manually.");
+      setStep("details");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const submit = () => {
@@ -397,7 +425,8 @@ export const AddWishModal: React.FC<AddWishModalProps> = ({ onClose, onAdd }) =>
       price: Number(price) || 0,
       currency: "$",
       store: store || "—",
-      category: "Kitchen",
+      storeUrl: url || undefined,
+      category,
       priority,
       occasion,
       notes,
@@ -427,9 +456,10 @@ export const AddWishModal: React.FC<AddWishModalProps> = ({ onClose, onAdd }) =>
                   placeholder="https://..."
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && doQuickAdd()}
                 />
                 <button className="btn btn-primary" onClick={doQuickAdd} disabled={loading}>
-                  {loading ? "Fetching..." : <><IconSparkle size={14} /> Autofill</>}
+                  {loading ? "Fetching…" : <><IconSparkle size={14} /> Autofill</>}
                 </button>
               </div>
             </div>
@@ -456,9 +486,17 @@ export const AddWishModal: React.FC<AddWishModalProps> = ({ onClose, onAdd }) =>
 
         {step === "details" && (
           <>
+            {scrapeError && (
+              <div style={{ background: "var(--butter)", borderRadius: 10, padding: "8px 14px", fontSize: 13, marginBottom: 14 }}>
+                {scrapeError}
+              </div>
+            )}
             <div style={{ display: "flex", gap: 14, marginBottom: 14 }}>
-              <div style={{ width: 96, height: 96, borderRadius: 14, overflow: "hidden", flexShrink: 0 }}>
-                <Placeholder tint="#F6B89A" label="preview" />
+              <div style={{ width: 96, height: 96, borderRadius: 14, overflow: "hidden", flexShrink: 0, background: "var(--cream-2)" }}>
+                {scrapeImageUrl
+                  ? <img src={scrapeImageUrl} alt="preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  : <Placeholder tint="#F6B89A" label="preview" />
+                }
               </div>
               <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10 }}>
                 <input className="input" placeholder="Item name" value={title} onChange={(e) => setTitle(e.target.value)} />
@@ -480,6 +518,15 @@ export const AddWishModal: React.FC<AddWishModalProps> = ({ onClose, onAdd }) =>
                   >
                     {PRIORITY_LABELS[p].label}
                   </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="field" style={{ marginBottom: 14 }}>
+              <label className="label">Category</label>
+              <div className="chip-row">
+                {CATEGORIES.filter(c => c !== "All").map(c => (
+                  <button key={c} className={`chip ${category === c ? "active" : ""}`} onClick={() => setCategory(c)}>{c}</button>
                 ))}
               </div>
             </div>

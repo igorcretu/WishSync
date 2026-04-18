@@ -124,6 +124,11 @@ export const wishes = {
     return res.json() as Promise<{ imagePath: string }>;
   },
 
+  scrape: (url: string) =>
+    request<{ title: string | null; image: string | null; price: number | null; store: string | null }>(
+      'GET', `/api/wishes/scrape?url=${encodeURIComponent(url)}`
+    ),
+
   reserve: (id: string) => request<{ reserved: boolean }>('POST', `/api/wishes/${id}/reserve`),
 
   react: (id: string, type: 'heart' | 'eyes' | 'gift') =>
