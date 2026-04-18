@@ -1,0 +1,108 @@
+WishSync – Suggested Features
+
+Core Features
+
+1.  Separate profiles
+
+-   own wishlist
+-   profile picture
+-   nickname
+-   optional birthday / special dates
+
+2.  Add wishes easily
+
+-   item name
+-   image
+-   price
+-   store link
+-   category
+-   priority level
+-   notes
+
+3.  Priority system
+
+-   Must have
+-   Would love
+-   Nice to have
+
+4.  Mark items as reserved
+
+-   one person can secretly mark “I’m buying this”
+-   owner cannot see it
+-   avoids duplicate gifts
+
+5.  Occasion tags
+
+-   Birthday
+-   Christmas
+-   Anniversary
+-   Valentine’s
+-   Just because
+
+6.  Shared reminders
+
+-   birthday approaching
+-   anniversary soon
+-   holiday coming
+
+7.  Price tracking
+
+-   original price
+-   current price
+-   discount notifications
+
+8.  Quick add from link
+
+-   auto-fill title
+-   image
+-   price
+-   store
+
+9.  Notes section
+
+-   preferred color
+-   size
+-   exact version
+-   personal note
+
+10. Purchased history
+
+-   remember what was given
+-   when
+-   by whom
+
+Nice Extra Features
+
+11. Couple dashboard
+
+-   your wishlist count
+-   partner wishlist count
+-   upcoming events
+-   recent additions
+
+12. Reactions
+
+-   heart
+-   eyes
+-   gift emoji reactions
+
+13. Surprise mode
+
+-   hide gifts until selected date
+
+14. Budget tracker
+
+-   monthly spending plan
+
+15. Shared ideas list
+
+-   things both of you want together
+
+Recommended MVP
+
+-   User profiles
+-   Add/edit wishes
+-   Priority
+-   Reservation system
+-   Categories
+-   Notifications
