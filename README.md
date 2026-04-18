@@ -1,73 +1,45 @@
-# React + TypeScript + Vite
+# WishSync
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Gifting, together. A shared wishlist app for couples and friend groups — see what the people you love actually want, reserve gifts secretly, and never repeat a present.
 
-Currently, two official plugins are available:
+Live at [wishsync.crig.dev](https://wishsync.crig.dev)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Stack
 
-## React Compiler
+- React 19 + TypeScript
+- Vite
+- Hosted on Netlify (auto-deploys from `main`)
+- Backend API at [wishsync-api.crig.dev](https://wishsync-api.crig.dev) — see the `/backend` folder
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Features
 
-## Expanding the ESLint configuration
+- Email + password auth
+- Wishlists with priorities, occasions, categories, and images
+- Secret reservations — your partner sees their wish is available, your gifting circle sees it's taken
+- Invite links to create couple / friend group circles
+- Occasions calendar
+- Purchase history
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Local development
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+```bash
+cp .env.example .env.local
+# set VITE_API_URL=http://localhost:3000
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+The backend needs to be running locally — see `../backend/README.md`.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Deployment
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+Pushes to `main` trigger a GitHub Actions workflow that builds and deploys to Netlify.
+
+Required GitHub secrets:
+
+| Secret | Where to get it |
+| ------ | --------------- |
+| `NETLIFY_AUTH_TOKEN` | Netlify → User Settings → Personal access tokens |
+| `NETLIFY_SITE_ID` | Netlify → Site → Site configuration → Site ID |
+| `VITE_API_URL` | Your backend URL |
