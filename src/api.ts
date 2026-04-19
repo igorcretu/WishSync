@@ -98,7 +98,7 @@ export const auth = {
 
   me: () => request<ApiUser>('GET', '/api/auth/me'),
 
-  updateMe: (data: Partial<Pick<ApiUser, 'name' | 'nickname' | 'color' | 'birthday'>>) =>
+  updateMe: (data: Partial<Pick<ApiUser, 'name' | 'nickname' | 'color' | 'birthday' | 'notifBirthdays' | 'notifPriceDrops' | 'notifNewWishes' | 'notifReactions'>> & { currentPassword?: string; newPassword?: string }) =>
     request<ApiUser>('PATCH', '/api/auth/me', data),
 };
 
@@ -156,6 +156,11 @@ export const circles = {
     request<{ inviteUrl: string; expiresAt: string }>('POST', `/api/circles/${circleId}/invites`, email ? { email } : {}),
 
   leave: (id: string) => request<void>('DELETE', `/api/circles/${id}`),
+
+  rename: (id: string, name: string) => request<ApiCircle>('PATCH', `/api/circles/${id}`, { name }),
+
+  removeMember: (circleId: string, memberId: string) =>
+    request<void>('DELETE', `/api/circles/${circleId}/members/${memberId}`),
 };
 
 // ---- invites ----

@@ -48,6 +48,7 @@ export interface Wish {
 
 export interface Occasion {
   id: string;
+  circleId: string;
   title: string;
   date: string;
   day: string;
@@ -67,7 +68,7 @@ export interface HistoryItem {
   image: WishImage;
 }
 
-export type ViewId = "dashboard" | "partner" | "mine" | "detail" | "groups" | "occasions" | "history" | "profile";
+export type ViewId = "dashboard" | "partner" | "mine" | "detail" | "groups" | "occasions" | "history" | "profile" | "friend";
 
 export interface PriorityInfo {
   label: string;

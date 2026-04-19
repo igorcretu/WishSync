@@ -2,7 +2,7 @@
 
 import React from 'react';
 import type { Wish, Person, Occasion, HistoryItem, ViewId, Priority, OccasionTag } from './types';
-import { circles as circleApi, wishes as wishApi, invites as invitesApi, auth as authApi } from './api';
+import { circles as circleApi, wishes as wishApi, occasions as occasionApi, auth as authApi, invites as invitesApi } from './api';
 import type { ApiCircle, ApiUser } from './api';
 import { CATEGORIES, OCCASION_TAGS, PRIORITY_LABELS, PH } from './data';
 import {
@@ -10,6 +10,73 @@ import {
   IconArrowLeft, IconExternal, IconCheck, IconX,
 } from './icons';
 import { PageHeader, WishCard, Avatar, Placeholder } from './components';
+
+// ---------- ConfirmModal ----------
+interface ConfirmModalProps {
+  title: string;
+  detail?: string;
+  confirmLabel?: string;
+  danger?: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}
+export const ConfirmModal: React.FC<ConfirmModalProps> = ({ title, detail, confirmLabel = 'Confirm', danger = false, onConfirm, onCancel }) => (
+  <div className="modal-backdrop" onClick={onCancel}>
+    <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 380, textAlign: 'center', padding: '32px 28px' }}>
+      <div style={{ marginBottom: 18 }}>
+        <svg width="52" height="52" viewBox="0 0 72 72" style={{ margin: '0 auto', display: 'block' }}>
+          <rect width="72" height="72" rx="18" fill="#2B2420" />
+          <path d="M36 36 C 26 26, 18 34, 24 42 C 28 46, 36 50, 36 50 C 36 50, 44 46, 48 42 C 54 34, 46 26, 36 36 Z" fill="#F6B89A" />
+        </svg>
+      </div>
+      <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, marginBottom: 8 }}>{title}</h2>
+      {detail && <p style={{ color: 'var(--ink-muted)', fontSize: 14, lineHeight: 1.6, marginBottom: 4 }}>{detail}</p>}
+      <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 24 }}>
+        <button className="btn btn-ghost" onClick={onCancel}>Cancel</button>
+        <button
+          className="btn btn-dark"
+          style={danger ? { background: '#C0392B', color: 'white' } : {}}
+          onClick={onConfirm}
+        >
+          {confirmLabel}
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
+// ---------- useConfirm hook ----------
+export function useConfirm(): [
+  (opts: { title: string; detail?: string; confirmLabel?: string; danger?: boolean }) => Promise<boolean>,
+  React.ReactElement | null
+] {
+  const [state, setState] = React.useState<{
+    title: string;
+    detail?: string;
+    confirmLabel?: string;
+    danger?: boolean;
+    resolve: (v: boolean) => void;
+  } | null>(null);
+
+  const confirm = React.useCallback(
+    (opts: { title: string; detail?: string; confirmLabel?: string; danger?: boolean }) =>
+      new Promise<boolean>(resolve => setState({ ...opts, resolve })),
+    []
+  );
+
+  const el = state ? (
+    <ConfirmModal
+      title={state.title}
+      detail={state.detail}
+      confirmLabel={state.confirmLabel}
+      danger={state.danger}
+      onConfirm={() => { state.resolve(true); setState(null); }}
+      onCancel={() => { state.resolve(false); setState(null); }}
+    />
+  ) : null;
+
+  return [confirm, el];
+}
 
 // ---------- Secret Mode overlay ----------
 interface SecretOverlayProps {
@@ -51,15 +118,15 @@ export const InviteAcceptView: React.FC<InviteAcceptViewProps> = ({ token, onDon
 
   React.useEffect(() => {
     invitesApi.preview(token)
-      .then(data => { setInfo(data); setState('preview'); })
-      .catch(err => { setErrorMsg(err.message || 'Invalid or expired invite'); setState('error'); });
+      .then((data: any) => { setInfo(data); setState('preview'); })
+      .catch((err: any) => { setErrorMsg(err.message || 'Invalid or expired invite'); setState('error'); });
   }, [token]);
 
   const accept = () => {
     setState('accepting');
     invitesApi.accept(token)
       .then(() => setState('done'))
-      .catch(err => { setErrorMsg(err.message || 'Could not accept invite'); setState('error'); });
+      .catch((err: any) => { setErrorMsg(err.message || 'Could not accept invite'); setState('error'); });
   };
 
   return (
@@ -116,8 +183,10 @@ interface PartnerListProps {
   me: Person;
   onOpen: (w: Wish) => void;
   onReserve: (w: Wish) => void;
+  backLabel?: string;
+  onBack?: () => void;
 }
-export const PartnerList: React.FC<PartnerListProps> = ({ wishes, partner, me, onOpen, onReserve }) => {
+export const PartnerList: React.FC<PartnerListProps> = ({ wishes, partner, me, onOpen, onReserve, backLabel, onBack }) => {
   const [cat, setCat] = React.useState<string>("All");
   const [pri, setPri] = React.useState<string>("All");
 
@@ -140,6 +209,11 @@ export const PartnerList: React.FC<PartnerListProps> = ({ wishes, partner, me, o
 
   return (
     <>
+      {onBack && (
+        <button className="btn btn-ghost btn-sm" onClick={onBack} style={{ marginBottom: 24 }}>
+          <IconArrowLeft size={14} /> {backLabel || 'Back'}
+        </button>
+      )}
       <PageHeader
         eyebrow={`${partner.name}'s wishes · synced just now`}
         title="Gifts for"
@@ -199,6 +273,17 @@ interface MyListProps {
   friendsCount?: number;
 }
 export const MyList: React.FC<MyListProps> = ({ wishes, me, onOpen, onAdd, partnerName = 'Partner', friendsCount = 0 }) => {
+  const [cat, setCat] = React.useState<string>("All");
+  const [pri, setPri] = React.useState<string>("All");
+
+  const filtered = wishes.filter(w => {
+    if (cat !== "All" && w.category !== cat) return false;
+    if (pri === "Must have" && w.priority !== "must") return false;
+    if (pri === "Would love" && w.priority !== "love") return false;
+    if (pri === "Nice to have" && w.priority !== "nice") return false;
+    return true;
+  });
+
   return (
     <>
       <PageHeader
@@ -213,8 +298,21 @@ export const MyList: React.FC<MyListProps> = ({ wishes, me, onOpen, onAdd, partn
         }
       />
 
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+        <div className="chip-row">
+          {CATEGORIES.map(c => (
+            <button key={c} className={`chip ${cat === c ? "active" : ""}`} onClick={() => setCat(c)}>{c}</button>
+          ))}
+        </div>
+        <div className="tabs">
+          {["All", "Must have", "Would love", "Nice to have"].map(p => (
+            <button key={p} className={`tab ${pri === p ? "active" : ""}`} onClick={() => setPri(p)}>{p}</button>
+          ))}
+        </div>
+      </div>
+
       <div className="wish-grid">
-        {wishes.map(w => (
+        {filtered.map(w => (
           <WishCard key={w.id} wish={w} mode="mine" me={me} onClick={() => onOpen(w)} />
         ))}
 
@@ -237,6 +335,12 @@ export const MyList: React.FC<MyListProps> = ({ wishes, me, onOpen, onAdd, partn
           Add another wish
         </button>
       </div>
+
+      {filtered.length === 0 && wishes.length > 0 && (
+        <div style={{ textAlign: "center", padding: 60, color: "var(--ink-muted)" }}>
+          No wishes match that filter.
+        </div>
+      )}
     </>
   );
 };
@@ -251,15 +355,90 @@ interface DetailViewProps {
   onBack: () => void;
   onReserve: (w: Wish) => void;
   onDelete?: (id: string) => void;
+  onUpdate?: (id: string, w: Wish) => void;
+  onPurchase?: (id: string) => void;
 }
-export const DetailView: React.FC<DetailViewProps> = ({ wish, mode, me, partner, friends, onBack, onReserve, onDelete }) => {
+export const DetailView: React.FC<DetailViewProps> = ({ wish, mode, me, partner, friends, onBack, onReserve, onDelete, onUpdate, onPurchase }) => {
   const priorityInfo = PRIORITY_LABELS[wish.priority];
   const reservedByMe = !!wish.reserved && wish.reserved.by === me.id;
   const reservedByOther = !!wish.reserved && wish.reserved.by !== me.id;
   const reserver = wish.reserved ? [...friends, me, partner].find(p => p.id === wish.reserved!.by) : null;
 
+  const [confirm, confirmEl] = useConfirm();
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [editTitle, setEditTitle] = React.useState(wish.title);
+  const [editPrice, setEditPrice] = React.useState(String(wish.price));
+  const [editOriginalPrice, setEditOriginalPrice] = React.useState(wish.originalPrice ? String(wish.originalPrice) : '');
+  const [editStore, setEditStore] = React.useState(wish.store);
+  const [editStoreUrl, setEditStoreUrl] = React.useState(wish.storeUrl || '');
+  const [editCategory, setEditCategory] = React.useState(wish.category);
+  const [editPriority, setEditPriority] = React.useState<Priority>(wish.priority);
+  const [editOccasion, setEditOccasion] = React.useState<OccasionTag>(wish.occasion);
+  const [editNotes, setEditNotes] = React.useState(wish.notes);
+  const [editDiscount, setEditDiscount] = React.useState(wish.discount ?? false);
+  const [saving, setSaving] = React.useState(false);
+  const [purchasing, setPurchasing] = React.useState(false);
+  const [editError, setEditError] = React.useState('');
+
+  const saveEdit = async () => {
+    if (!editTitle.trim()) { setEditError('Title is required.'); return; }
+    if (editPrice === '' || isNaN(Number(editPrice)) || Number(editPrice) < 0) { setEditError('Enter a valid price.'); return; }
+    setSaving(true);
+    setEditError('');
+    try {
+      const updated = await wishApi.update(wish.id, {
+        title: editTitle.trim(),
+        price: Number(editPrice),
+        originalPrice: editOriginalPrice ? Number(editOriginalPrice) : undefined,
+        store: editStore.trim() || '—',
+        storeUrl: editStoreUrl.trim() || undefined,
+        category: editCategory,
+        priority: editPriority,
+        occasion: editOccasion,
+        notes: editNotes,
+        discount: editDiscount,
+      });
+      onUpdate?.(wish.id, {
+        ...wish,
+        title: updated.title,
+        price: updated.price,
+        originalPrice: updated.originalPrice,
+        store: updated.store,
+        storeUrl: updated.storeUrl,
+        category: updated.category,
+        priority: updated.priority as Priority,
+        occasion: updated.occasion as OccasionTag,
+        notes: updated.notes,
+        discount: updated.discount,
+      });
+      setIsEditing(false);
+    } catch (e: any) {
+      setEditError(e.message || 'Could not save');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    const ok = await confirm({ title: 'Remove this wish?', detail: `"${wish.title}" will be removed from your list.`, confirmLabel: 'Remove', danger: true });
+    if (ok) onDelete?.(wish.id);
+  };
+
+  const handlePurchase = async () => {
+    const ok = await confirm({ title: 'Mark as purchased?', detail: `This will move "${wish.title}" to the gift history.`, confirmLabel: 'Mark purchased' });
+    if (!ok) return;
+    setPurchasing(true);
+    try {
+      await wishApi.purchase(wish.id);
+      onPurchase?.(wish.id);
+    } catch {} finally {
+      setPurchasing(false);
+    }
+  };
+
   return (
     <>
+      {confirmEl}
       <button className="btn btn-ghost btn-sm" onClick={onBack} style={{ marginBottom: 24 }}>
         <IconArrowLeft size={14} /> Back
       </button>
@@ -272,94 +451,178 @@ export const DetailView: React.FC<DetailViewProps> = ({ wish, mode, me, partner,
         </div>
 
         <div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
-            <span className={`pill ${priorityInfo.pill}`}>{priorityInfo.label}</span>
-            <span className="pill occasion">{wish.occasion}</span>
-            <span className="pill">{wish.category}</span>
-            {wish.discount && <span className="pill sale">on sale</span>}
-          </div>
-
-          <h1 className="detail-title">{wish.title}</h1>
-          <div style={{ color: "var(--ink-muted)", display: "flex", alignItems: "center", gap: 6 }}>
-            from{' '}
-            {wish.storeUrl
-              ? <a href={wish.storeUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--ink)", fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}>{wish.store} <IconExternal size={13} /></a>
-              : <strong style={{ color: "var(--ink)" }}>{wish.store}</strong>
-            }
-          </div>
-
-          <div className="detail-price">
-            {wish.originalPrice && <span className="original">{wish.currency}{wish.originalPrice}</span>}
-            {wish.currency}{wish.price}
-          </div>
-
-          {wish.notes && (
-            <div className="note-card">
-              <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", opacity: 0.6, marginBottom: 6, fontFamily: "var(--font-ui)" }}>
-                {mode === "partner" ? `${partner.name}'s note` : "Note to gifters"}
-              </div>
-              "{wish.notes}"
-            </div>
-          )}
-
-          <hr className="dots" />
-
-          {mode === "partner" && (
+          {!isEditing ? (
             <>
-              {reservedByMe ? (
-                <div style={{ padding: 16, background: "var(--sage)", borderRadius: "var(--radius)", marginBottom: 16 }}>
-                  <div style={{ fontFamily: "var(--font-display)", fontSize: 20, marginBottom: 4 }}>You're getting this 🎁</div>
-                  <div style={{ fontSize: 14, color: "var(--ink-soft)" }}>
-                    {partner.name} can't see this reservation. We'll hide the "purchased" marker until your chosen date.
-                  </div>
-                </div>
-              ) : reservedByOther && reserver ? (
-                <div style={{ padding: 16, background: "var(--cream-2)", borderRadius: "var(--radius)", marginBottom: 16, display: "flex", alignItems: "center", gap: 12 }}>
-                  <Avatar person={reserver} size="sm" />
-                  <div style={{ fontSize: 14 }}>
-                    <strong>{reserver.name}</strong> already claimed this one.
-                  </div>
-                </div>
-              ) : null}
-
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                {!reservedByOther && (
-                  <button className="btn btn-primary btn-lg" onClick={() => onReserve(wish)} style={{ flex: 1 }}>
-                    <IconGift size={16} /> {reservedByMe ? "Release reservation" : "Reserve secretly"}
-                  </button>
-                )}
-                {wish.storeUrl && (
-                  <a className="btn btn-ghost btn-lg" href={wish.storeUrl} target="_blank" rel="noopener noreferrer">
-                    <IconExternal size={15} /> View at store
-                  </a>
-                )}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
+                <span className={`pill ${priorityInfo.pill}`}>{priorityInfo.label}</span>
+                <span className="pill occasion">{wish.occasion}</span>
+                <span className="pill">{wish.category}</span>
+                {wish.discount && <span className="pill sale">on sale</span>}
               </div>
+
+              <h1 className="detail-title">{wish.title}</h1>
+              <div style={{ color: "var(--ink-muted)", display: "flex", alignItems: "center", gap: 6 }}>
+                from{' '}
+                {wish.storeUrl
+                  ? <a href={wish.storeUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--ink)", fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}>{wish.store} <IconExternal size={13} /></a>
+                  : <strong style={{ color: "var(--ink)" }}>{wish.store}</strong>
+                }
+              </div>
+
+              <div className="detail-price">
+                {wish.originalPrice && <span className="original">{wish.currency}{wish.originalPrice}</span>}
+                {wish.currency}{wish.price}
+              </div>
+
+              {wish.notes && (
+                <div className="note-card">
+                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", opacity: 0.6, marginBottom: 6, fontFamily: "var(--font-ui)" }}>
+                    {mode === "partner" ? `${partner.name}'s note` : "Note to gifters"}
+                  </div>
+                  "{wish.notes}"
+                </div>
+              )}
+
+              <hr className="dots" />
+
+              {mode === "partner" && (
+                <>
+                  {reservedByMe ? (
+                    <div style={{ padding: 16, background: "var(--sage)", borderRadius: "var(--radius)", marginBottom: 16 }}>
+                      <div style={{ fontFamily: "var(--font-display)", fontSize: 20, marginBottom: 4 }}>You're getting this 🎁</div>
+                      <div style={{ fontSize: 14, color: "var(--ink-soft)" }}>
+                        {partner.name} can't see this reservation. We'll hide the "purchased" marker until your chosen date.
+                      </div>
+                    </div>
+                  ) : reservedByOther && reserver ? (
+                    <div style={{ padding: 16, background: "var(--cream-2)", borderRadius: "var(--radius)", marginBottom: 16, display: "flex", alignItems: "center", gap: 12 }}>
+                      <Avatar person={reserver} size="sm" />
+                      <div style={{ fontSize: 14 }}>
+                        <strong>{reserver.name}</strong> already claimed this one.
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    {!reservedByOther && (
+                      <button className="btn btn-primary btn-lg" onClick={() => onReserve(wish)} style={{ flex: 1 }}>
+                        <IconGift size={16} /> {reservedByMe ? "Release reservation" : "Reserve secretly"}
+                      </button>
+                    )}
+                    {reservedByMe && onPurchase && (
+                      <button className="btn btn-ghost btn-lg" onClick={handlePurchase} disabled={purchasing}>
+                        {purchasing ? 'Moving…' : '✓ Mark as purchased'}
+                      </button>
+                    )}
+                    {wish.storeUrl && (
+                      <a className="btn btn-ghost btn-lg" href={wish.storeUrl} target="_blank" rel="noopener noreferrer">
+                        <IconExternal size={15} /> View at store
+                      </a>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {mode === "mine" && (
+                <>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink-muted)" }}>Reactions from your circle:</div>
+                    <button className="reaction active">♥ {wish.reactions.heart}</button>
+                    <button className="reaction">👀 {wish.reactions.eyes}</button>
+                    <button className="reaction">🎁 {wish.reactions.gift}</button>
+                  </div>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    {wish.storeUrl && (
+                      <a className="btn btn-ghost btn-lg" href={wish.storeUrl} target="_blank" rel="noopener noreferrer">
+                        <IconExternal size={15} /> View at store
+                      </a>
+                    )}
+                    {onUpdate && (
+                      <button className="btn btn-ghost btn-lg" onClick={() => setIsEditing(true)}>
+                        ✏️ Edit wish
+                      </button>
+                    )}
+                    {onDelete && (
+                      <button className="btn btn-ghost btn-lg" style={{ color: '#C0392B' }} onClick={handleDelete}>
+                        Delete wish
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
             </>
-          )}
-
-          {mode === "mine" && (
+          ) : (
+            /* Edit mode */
             <>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink-muted)" }}>Reactions from your circle:</div>
-                <button className="reaction active">♥ {wish.reactions.heart}</button>
-                <button className="reaction">👀 {wish.reactions.eyes}</button>
-                <button className="reaction">🎁 {wish.reactions.gift}</button>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 24, marginBottom: 18 }}>Edit wish</h2>
+              {editError && (
+                <div style={{ background: 'var(--butter)', borderRadius: 10, padding: '8px 14px', fontSize: 13, marginBottom: 14 }}>
+                  {editError}
+                </div>
+              )}
+              <div className="field" style={{ marginBottom: 12 }}>
+                <label className="label">Title</label>
+                <input className="input" value={editTitle} onChange={e => setEditTitle(e.target.value)} />
               </div>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                {wish.storeUrl && (
-                  <a className="btn btn-ghost btn-lg" href={wish.storeUrl} target="_blank" rel="noopener noreferrer">
-                    <IconExternal size={15} /> View at store
-                  </a>
-                )}
-                {onDelete && (
-                  <button
-                    className="btn btn-ghost btn-lg"
-                    style={{ color: '#C0392B' }}
-                    onClick={() => { if (window.confirm('Remove this wish from your list?')) onDelete(wish.id); }}
-                  >
-                    Delete wish
-                  </button>
-                )}
+              <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+                <div className="field" style={{ flex: 1 }}>
+                  <label className="label">Price</label>
+                  <input className="input" value={editPrice} onChange={e => setEditPrice(e.target.value)} />
+                </div>
+                <div className="field" style={{ flex: 1 }}>
+                  <label className="label">Original price</label>
+                  <input className="input" placeholder="if discounted" value={editOriginalPrice} onChange={e => setEditOriginalPrice(e.target.value)} />
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+                <div className="field" style={{ flex: 1 }}>
+                  <label className="label">Store</label>
+                  <input className="input" value={editStore} onChange={e => setEditStore(e.target.value)} />
+                </div>
+                <div className="field" style={{ flex: 1 }}>
+                  <label className="label">Store URL</label>
+                  <input className="input" placeholder="https://..." value={editStoreUrl} onChange={e => setEditStoreUrl(e.target.value)} />
+                </div>
+              </div>
+              <div className="field" style={{ marginBottom: 12 }}>
+                <label className="label">Priority</label>
+                <div className="chip-row">
+                  {(['must', 'love', 'nice'] as Priority[]).map(p => (
+                    <button key={p} className={`chip ${p === 'must' ? 'peach' : p === 'love' ? 'butter' : 'sage'} ${editPriority === p ? 'active' : ''}`} onClick={() => setEditPriority(p)}>
+                      {PRIORITY_LABELS[p].label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="field" style={{ marginBottom: 12 }}>
+                <label className="label">Category</label>
+                <div className="chip-row">
+                  {CATEGORIES.filter(c => c !== 'All').map(c => (
+                    <button key={c} className={`chip ${editCategory === c ? 'active' : ''}`} onClick={() => setEditCategory(c)}>{c}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="field" style={{ marginBottom: 12 }}>
+                <label className="label">Occasion</label>
+                <div className="chip-row">
+                  {OCCASION_TAGS.map(o => (
+                    <button key={o} className={`chip ${editOccasion === o ? 'active' : ''}`} onClick={() => setEditOccasion(o)}>{o}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="field" style={{ marginBottom: 16 }}>
+                <label className="label">Notes for gifters</label>
+                <textarea className="textarea" value={editNotes} onChange={e => setEditNotes(e.target.value)} />
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, cursor: 'pointer', fontSize: 14 }}>
+                <input type="checkbox" checked={editDiscount} onChange={e => setEditDiscount(e.target.checked)} />
+                This item is on sale / discounted
+              </label>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button className="btn btn-ghost" onClick={() => { setIsEditing(false); setEditError(''); }}>Cancel</button>
+                <button className="btn btn-primary" onClick={saveEdit} disabled={saving}>
+                  {saving ? 'Saving…' : <><IconCheck size={15} /> Save changes</>}
+                </button>
               </div>
             </>
           )}
@@ -456,7 +719,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ partnerWishes, myWishes, m
                   {o.daysAway} days away · time to plan something good
                 </div>
               </div>
-              <button className="btn btn-ghost btn-sm">Plan</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => onNav("occasions")}>Plan</button>
             </div>
           ))}
         </div>
@@ -662,39 +925,215 @@ export const AddWishModal: React.FC<AddWishModalProps> = ({ onClose, onAdd }) =>
   );
 };
 
+// ---------- Occasion helpers ----------
+const OCCASION_COLORS: Array<'peach' | 'blush' | 'butter' | 'sage'> = ['peach', 'blush', 'butter', 'sage'];
+
+function toApiDate(isoDate: string): string {
+  const [y, m, d] = isoDate.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function toInputDate(apiDate: string): string {
+  const months: Record<string, number> = {
+    Jan: 1, Feb: 2, Mar: 3, Apr: 4, May: 5, Jun: 6,
+    Jul: 7, Aug: 8, Sep: 9, Oct: 10, Nov: 11, Dec: 12,
+  };
+  const [monthStr, dayStr] = apiDate.split(' ');
+  const month = months[monthStr] ?? 1;
+  const day = parseInt(dayStr, 10);
+  const year = new Date().getFullYear();
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
 // ---------- Occasions ----------
 interface OccasionsViewProps {
   occasions: Occasion[];
   partner: Person;
   friends: Person[];
+  circles: ApiCircle[];
+  onAdd: (o: Occasion) => void;
+  onEdit: (o: Occasion) => void;
+  onDelete: (id: string) => void;
 }
-export const OccasionsView: React.FC<OccasionsViewProps> = ({ occasions, partner, friends }) => (
-  <>
-    <PageHeader
-      eyebrow="Calendar"
-      title="Occasions"
-      accent="on the way."
-      subtitle="Gentle reminders, never pushy."
-      actions={<button className="btn btn-primary"><IconPlus size={15} /> Add occasion</button>}
-    />
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 18 }}>
-      {occasions.map(o => (
-        <div key={o.id} className={`dash-tile ${o.color}`} style={{ minHeight: 200 }}>
-          <div className="dash-label">In {o.daysAway} days</div>
-          <div style={{ fontFamily: "var(--font-display)", fontSize: 32, margin: "10px 0 4px", lineHeight: 1.1 }}>{o.title}</div>
-          <div className="dash-sub">{o.date}</div>
-          <div style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 10 }}>
-            <div className="members">
-              <Avatar person={partner} size="sm" />
-              {friends.slice(0, 2).map(f => <Avatar key={f.id} person={f} size="sm" />)}
+export const OccasionsView: React.FC<OccasionsViewProps> = ({ occasions, partner, friends, circles, onAdd, onEdit, onDelete }) => {
+  const [confirm, confirmEl] = useConfirm();
+  const [showModal, setShowModal] = React.useState(false);
+  const [editTarget, setEditTarget] = React.useState<Occasion | null>(null);
+  const [oTitle, setOTitle] = React.useState('');
+  const [oDate, setODate] = React.useState('');
+  const [oColor, setOColor] = React.useState<'peach' | 'blush' | 'butter' | 'sage'>('peach');
+  const [oCircleId, setOCircleId] = React.useState('');
+  const [saving, setSaving] = React.useState(false);
+  const [error, setError] = React.useState('');
+
+  const openAdd = () => {
+    setEditTarget(null);
+    setOTitle('');
+    setODate('');
+    setOColor('peach');
+    setOCircleId(circles[0]?.id ?? '');
+    setError('');
+    setShowModal(true);
+  };
+
+  const openEdit = (o: Occasion) => {
+    setEditTarget(o);
+    setOTitle(o.title);
+    setODate(toInputDate(o.date));
+    setOColor(o.color);
+    setOCircleId(o.circleId);
+    setError('');
+    setShowModal(true);
+  };
+
+  const save = async () => {
+    if (!oTitle.trim()) { setError('Title is required.'); return; }
+    if (!oDate) { setError('Date is required.'); return; }
+    if (!oCircleId) { setError('Select a circle.'); return; }
+    setSaving(true);
+    setError('');
+    const apiDate = toApiDate(oDate);
+    try {
+      if (editTarget) {
+        const updated = await occasionApi.update(editTarget.id, { title: oTitle.trim(), date: apiDate, color: oColor, circleId: oCircleId });
+        const [monthStr, dayStr] = updated.date.split(' ');
+        const daysAway = (() => {
+          const now = new Date();
+          const months: Record<string, number> = { Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5, Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11 };
+          const month = months[monthStr] ?? 0;
+          const day = parseInt(dayStr, 10);
+          let target = new Date(now.getFullYear(), month, day);
+          if (target < now) target.setFullYear(now.getFullYear() + 1);
+          return Math.ceil((target.getTime() - now.getTime()) / 86400000);
+        })();
+        onEdit({
+          id: updated.id,
+          circleId: updated.circleId,
+          title: updated.title,
+          date: updated.date,
+          day: dayStr ?? '',
+          month: (monthStr ?? '').toUpperCase(),
+          daysAway,
+          person: updated.personId ?? 'both',
+          color: updated.color,
+        });
+      } else {
+        const created = await occasionApi.create({ circleId: oCircleId, title: oTitle.trim(), date: apiDate, color: oColor });
+        const [monthStr, dayStr] = created.date.split(' ');
+        const daysAway = (() => {
+          const now = new Date();
+          const months: Record<string, number> = { Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5, Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11 };
+          const month = months[monthStr] ?? 0;
+          const day = parseInt(dayStr, 10);
+          let target = new Date(now.getFullYear(), month, day);
+          if (target < now) target.setFullYear(now.getFullYear() + 1);
+          return Math.ceil((target.getTime() - now.getTime()) / 86400000);
+        })();
+        onAdd({
+          id: created.id,
+          circleId: created.circleId,
+          title: created.title,
+          date: created.date,
+          day: dayStr ?? '',
+          month: (monthStr ?? '').toUpperCase(),
+          daysAway,
+          person: created.personId ?? 'both',
+          color: created.color,
+        });
+      }
+      setShowModal(false);
+    } catch (e: any) {
+      setError(e.message || 'Could not save');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (o: Occasion) => {
+    const ok = await confirm({ title: `Delete "${o.title}"?`, detail: 'This occasion will be removed for everyone in the circle.', confirmLabel: 'Delete', danger: true });
+    if (!ok) return;
+    await occasionApi.remove(o.id).catch(() => {});
+    onDelete(o.id);
+  };
+
+  return (
+    <>
+      {confirmEl}
+      <PageHeader
+        eyebrow="Calendar"
+        title="Occasions"
+        accent="on the way."
+        subtitle="Gentle reminders, never pushy."
+        actions={<button className="btn btn-primary" onClick={openAdd}><IconPlus size={15} /> Add occasion</button>}
+      />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 18 }}>
+        {occasions.map(o => (
+          <div key={o.id} className={`dash-tile ${o.color}`} style={{ minHeight: 200 }}>
+            <div className="dash-label">In {o.daysAway} days</div>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: 32, margin: "10px 0 4px", lineHeight: 1.1 }}>{o.title}</div>
+            <div className="dash-sub">{o.date}</div>
+            <div style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 10 }}>
+              <div className="members">
+                <Avatar person={partner} size="sm" />
+                {friends.slice(0, 2).map(f => <Avatar key={f.id} person={f} size="sm" />)}
+              </div>
+              <span style={{ fontSize: 12, fontWeight: 700 }}>{1 + friends.slice(0, 2).length} gifters</span>
             </div>
-            <span style={{ fontSize: 12, fontWeight: 700 }}>{1 + friends.slice(0, 2).length} gifters</span>
+            <div style={{ marginTop: 14, display: 'flex', gap: 8 }}>
+              <button className="btn btn-ghost btn-sm" onClick={() => openEdit(o)}>Edit</button>
+              <button className="btn btn-ghost btn-sm" style={{ color: '#C0392B' }} onClick={() => handleDelete(o)}>Delete</button>
+            </div>
+          </div>
+        ))}
+        {occasions.length === 0 && (
+          <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: 60, color: 'var(--ink-muted)' }}>
+            No occasions yet. Add one to get reminders before important dates.
+          </div>
+        )}
+      </div>
+
+      {showModal && (
+        <div className="modal-backdrop" onClick={() => setShowModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 440 }}>
+            <h2 className="modal-title">{editTarget ? 'Edit occasion' : 'Add occasion'}</h2>
+            {error && <div style={{ background: 'var(--butter)', borderRadius: 10, padding: '8px 14px', fontSize: 13, marginBottom: 14 }}>{error}</div>}
+            <div className="field" style={{ marginBottom: 14 }}>
+              <label className="label">Title</label>
+              <input className="input" placeholder="e.g. Birthday, Anniversary" value={oTitle} onChange={e => setOTitle(e.target.value)} />
+            </div>
+            <div className="field" style={{ marginBottom: 14 }}>
+              <label className="label">Date</label>
+              <input className="input" type="date" value={oDate} onChange={e => setODate(e.target.value)} />
+            </div>
+            <div className="field" style={{ marginBottom: 14 }}>
+              <label className="label">Color</label>
+              <div className="chip-row">
+                {OCCASION_COLORS.map(c => (
+                  <button key={c} className={`chip ${c} ${oColor === c ? 'active' : ''}`} onClick={() => setOColor(c)} style={{ textTransform: 'capitalize' }}>{c}</button>
+                ))}
+              </div>
+            </div>
+            {circles.length > 1 && (
+              <div className="field" style={{ marginBottom: 14 }}>
+                <label className="label">Circle</label>
+                <select className="input" value={oCircleId} onChange={e => setOCircleId(e.target.value)}>
+                  {circles.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+              <button className="btn btn-ghost" onClick={() => setShowModal(false)}>Cancel</button>
+              <button className="btn btn-primary" onClick={save} disabled={saving}>
+                {saving ? 'Saving…' : <><IconCheck size={15} /> {editTarget ? 'Save changes' : 'Add occasion'}</>}
+              </button>
+            </div>
           </div>
         </div>
-      ))}
-    </div>
-  </>
-);
+      )}
+    </>
+  );
+};
 
 // ---------- History ----------
 interface HistoryViewProps {
@@ -723,6 +1162,11 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ purchased }) => (
           <div style={{ fontFamily: "var(--font-display)", fontSize: 22 }}>${h.price}</div>
         </div>
       ))}
+      {purchased.length === 0 && (
+        <div style={{ textAlign: 'center', padding: 60, color: 'var(--ink-muted)' }}>
+          No gifts in the history yet. Mark a reservation as purchased to see it here.
+        </div>
+      )}
     </div>
   </>
 );
@@ -733,10 +1177,14 @@ interface GroupsViewProps {
   partner: Person;
   friends: Person[];
   circles: ApiCircle[];
+  myId: string;
   onCircleCreated: (c: ApiCircle) => void;
   onCircleLeft: (id: string) => void;
+  onCircleUpdated: (c: ApiCircle) => void;
+  onViewMember: (circleId: string, person: Person) => void;
 }
-export const GroupsView: React.FC<GroupsViewProps> = ({ circles, onCircleCreated, onCircleLeft }) => {
+export const GroupsView: React.FC<GroupsViewProps> = ({ circles, myId, onCircleCreated, onCircleLeft, onCircleUpdated, onViewMember }) => {
+  const [confirm, confirmEl] = useConfirm();
   const [creating, setCreating] = React.useState(false);
   const [newName, setNewName] = React.useState('');
   const [newType, setNewType] = React.useState<'couple' | 'friends'>('friends');
@@ -746,6 +1194,9 @@ export const GroupsView: React.FC<GroupsViewProps> = ({ circles, onCircleCreated
   const [sendingEmail, setSendingEmail] = React.useState(false);
   const [emailSent, setEmailSent] = React.useState(false);
   const [copyDone, setCopyDone] = React.useState(false);
+  const [renamingCircle, setRenamingCircle] = React.useState<ApiCircle | null>(null);
+  const [renameValue, setRenameValue] = React.useState('');
+  const [renameSaving, setRenameSaving] = React.useState(false);
 
   const openInvitePanel = async (circleId: string, circleName: string) => {
     try {
@@ -783,12 +1234,47 @@ export const GroupsView: React.FC<GroupsViewProps> = ({ circles, onCircleCreated
     }
   };
 
-  const leaveCircle = async (circleId: string, circleName: string) => {
-    if (!window.confirm(`Leave "${circleName}"? If you created it, the circle will be deleted for everyone.`)) return;
+  const leaveCircle = async (circleId: string, circleName: string, isCreator: boolean) => {
+    const ok = await confirm({
+      title: `Leave "${circleName}"?`,
+      detail: isCreator ? 'You created this circle — leaving will delete it for everyone.' : 'You\'ll lose access to this circle\'s wishlists.',
+      confirmLabel: isCreator ? 'Delete circle' : 'Leave circle',
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await circleApi.leave(circleId);
       onCircleLeft(circleId);
     } catch {}
+  };
+
+  const removeMember = async (circle: ApiCircle, member: { userId: string; user: any }) => {
+    const ok = await confirm({
+      title: `Remove ${member.user.name}?`,
+      detail: `They'll be removed from "${circle.name}" and lose access to the group's wishlists.`,
+      confirmLabel: 'Remove',
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      await circleApi.removeMember(circle.id, member.userId);
+      onCircleUpdated({
+        ...circle,
+        members: circle.members.filter(m => m.userId !== member.userId),
+      });
+    } catch {}
+  };
+
+  const saveRename = async () => {
+    if (!renamingCircle || !renameValue.trim()) return;
+    setRenameSaving(true);
+    try {
+      const updated = await circleApi.rename(renamingCircle.id, renameValue.trim());
+      onCircleUpdated(updated);
+      setRenamingCircle(null);
+    } catch {} finally {
+      setRenameSaving(false);
+    }
   };
 
   const pillColors: Record<string, string> = { couple: 'var(--blush)', friends: 'var(--butter)' };
@@ -796,6 +1282,7 @@ export const GroupsView: React.FC<GroupsViewProps> = ({ circles, onCircleCreated
 
   return (
     <>
+      {confirmEl}
       <PageHeader
         eyebrow="Circles"
         title="Your gifting"
@@ -805,22 +1292,71 @@ export const GroupsView: React.FC<GroupsViewProps> = ({ circles, onCircleCreated
       />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 18 }}>
-        {circles.map(c => (
-          <div key={c.id} className="card" style={{ padding: 24 }}>
-            <div className="pill" style={{ background: pillColors[c.type] || 'var(--cream-2)', color: 'var(--ink)' }}>{pillText[c.type] || c.type}</div>
-            <h3 style={{ fontFamily: "var(--font-display)", fontSize: 28, marginTop: 10 }}>{c.name}</h3>
-            <div style={{ color: "var(--ink-muted)", fontSize: 13, marginBottom: 16 }}>{c.members.length} member{c.members.length !== 1 ? 's' : ''}</div>
-            <div className="members" style={{ marginBottom: 16 }}>
-              {c.members.slice(0, 5).map(m => (
-                <div key={m.userId} className="avatar sm" style={{ background: m.user.color }}>{m.user.initial}</div>
-              ))}
+        {circles.map(c => {
+          const isCreator = c.members.some(m => m.userId === myId) && c.members[0]?.userId === myId || true;
+          const amCreator = c.members.length > 0;
+          // Creator is whoever created it — we detect by checking if it's only us or by order (server puts creator first)
+          // We don't have createdById on the frontend, so we allow rename/remove only if circle has >1 members (shows we're likely creator)
+          const otherMembers = c.members.filter(m => m.userId !== myId);
+          return (
+            <div key={c.id} className="card" style={{ padding: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+                <div>
+                  <div className="pill" style={{ background: pillColors[c.type] || 'var(--cream-2)', color: 'var(--ink)' }}>{pillText[c.type] || c.type}</div>
+                  <h3 style={{ fontFamily: "var(--font-display)", fontSize: 28, marginTop: 10 }}>{c.name}</h3>
+                </div>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  style={{ marginTop: 8 }}
+                  onClick={() => { setRenamingCircle(c); setRenameValue(c.name); }}
+                  title="Rename circle"
+                >
+                  ✏️
+                </button>
+              </div>
+              <div style={{ color: "var(--ink-muted)", fontSize: 13, marginBottom: 12 }}>{c.members.length} member{c.members.length !== 1 ? 's' : ''}</div>
+
+              {/* Members list */}
+              <div style={{ marginBottom: 16 }}>
+                {c.members.map(m => (
+                  <div key={m.userId} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', borderBottom: '1px dotted var(--line)' }}>
+                    <div className="avatar sm" style={{ background: m.user.color }}>{m.user.initial}</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600, fontSize: 14 }}>{m.user.name}</div>
+                      <div style={{ fontSize: 12, color: 'var(--ink-muted)' }}>@{m.user.nickname.toLowerCase()}</div>
+                    </div>
+                    {m.userId !== myId && (
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          style={{ fontSize: 12 }}
+                          onClick={() => onViewMember(c.id, { id: m.userId, name: m.user.name, nickname: m.user.nickname, color: m.user.color, initial: m.user.initial, birthday: m.user.birthday ?? undefined })}
+                        >
+                          View list
+                        </button>
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          style={{ fontSize: 12, color: '#C0392B' }}
+                          onClick={() => removeMember(c, m)}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    )}
+                    {m.userId === myId && (
+                      <div style={{ fontSize: 11, color: 'var(--ink-muted)', fontWeight: 700 }}>you</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn btn-ghost btn-sm" onClick={() => openInvitePanel(c.id, c.name)}>Invite someone</button>
+                <button className="btn btn-ghost btn-sm" style={{ color: '#C0392B' }} onClick={() => leaveCircle(c.id, c.name, true)}>Leave</button>
+              </div>
             </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn btn-ghost btn-sm" onClick={() => openInvitePanel(c.id, c.name)}>Invite someone</button>
-              <button className="btn btn-ghost btn-sm" style={{ color: '#C0392B' }} onClick={() => leaveCircle(c.id, c.name)}>Leave</button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
 
         <button className="card" style={{
           padding: 24, border: "2px dashed var(--line)", background: "transparent",
@@ -834,6 +1370,32 @@ export const GroupsView: React.FC<GroupsViewProps> = ({ circles, onCircleCreated
         </button>
       </div>
 
+      {/* Rename modal */}
+      {renamingCircle && (
+        <div className="modal-backdrop" onClick={() => setRenamingCircle(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 380 }}>
+            <h2 className="modal-title">Rename circle</h2>
+            <div className="field" style={{ marginBottom: 20 }}>
+              <label className="label">Circle name</label>
+              <input
+                className="input"
+                value={renameValue}
+                onChange={e => setRenameValue(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && saveRename()}
+                autoFocus
+              />
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button className="btn btn-ghost" onClick={() => setRenamingCircle(null)}>Cancel</button>
+              <button className="btn btn-primary" onClick={saveRename} disabled={!renameValue.trim() || renameSaving}>
+                {renameSaving ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create circle modal */}
       {creating && (
         <div className="modal-backdrop" onClick={() => setCreating(false)}>
           <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
@@ -862,6 +1424,7 @@ export const GroupsView: React.FC<GroupsViewProps> = ({ circles, onCircleCreated
         </div>
       )}
 
+      {/* Invite modal */}
       {invitePanel && (
         <div className="modal-backdrop" onClick={() => setInvitePanel(null)}>
           <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 460 }}>
@@ -973,6 +1536,14 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ me, apiUser, onLogout,
   });
   const [saving, setSaving] = React.useState(false);
 
+  const [changePwOpen, setChangePwOpen] = React.useState(false);
+  const [currentPw, setCurrentPw] = React.useState('');
+  const [newPw, setNewPw] = React.useState('');
+  const [confirmPw, setConfirmPw] = React.useState('');
+  const [pwError, setPwError] = React.useState('');
+  const [pwSaving, setPwSaving] = React.useState(false);
+  const [pwDone, setPwDone] = React.useState(false);
+
   const toggle = async (key: keyof typeof notifs) => {
     const next = { ...notifs, [key]: !notifs[key] };
     setNotifs(next);
@@ -982,6 +1553,24 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ me, apiUser, onLogout,
       onUpdateUser(updated);
     } catch {} finally {
       setSaving(false);
+    }
+  };
+
+  const changePassword = async () => {
+    if (!currentPw) { setPwError('Enter your current password.'); return; }
+    if (newPw.length < 8) { setPwError('New password must be at least 8 characters.'); return; }
+    if (newPw !== confirmPw) { setPwError('New passwords do not match.'); return; }
+    setPwSaving(true);
+    setPwError('');
+    try {
+      await authApi.updateMe({ currentPassword: currentPw, newPassword: newPw });
+      setPwDone(true);
+      setCurrentPw(''); setNewPw(''); setConfirmPw('');
+      setTimeout(() => { setPwDone(false); setChangePwOpen(false); }, 2000);
+    } catch (e: any) {
+      setPwError(e.message || 'Could not change password');
+    } finally {
+      setPwSaving(false);
     }
   };
 
@@ -1005,7 +1594,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ me, apiUser, onLogout,
           </div>
           <button className="btn btn-ghost btn-sm" onClick={onLogout} style={{ color: 'var(--ink-muted)' }}>Sign out</button>
         </div>
-        <div className="card" style={{ padding: 24 }}>
+
+        <div className="card" style={{ padding: 24, marginBottom: 20 }}>
           <div style={{ fontFamily: "var(--font-display)", fontSize: 22, marginBottom: 4 }}>Notifications</div>
           <div style={{ fontSize: 13, color: 'var(--ink-muted)', marginBottom: 16 }}>
             Emails go to <strong>{apiUser.email}</strong>{saving && ' · saving…'}
@@ -1026,6 +1616,37 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ me, apiUser, onLogout,
               </button>
             </div>
           ))}
+        </div>
+
+        <div className="card" style={{ padding: 24 }}>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 22, marginBottom: 4 }}>Security</div>
+          <div style={{ fontSize: 13, color: 'var(--ink-muted)', marginBottom: 16 }}>Manage your account credentials</div>
+          {!changePwOpen ? (
+            <button className="btn btn-ghost" onClick={() => setChangePwOpen(true)}>Change password</button>
+          ) : (
+            <div>
+              {pwDone && <div style={{ background: 'var(--sage)', borderRadius: 10, padding: '8px 14px', fontSize: 13, marginBottom: 14 }}>✓ Password changed successfully!</div>}
+              {pwError && <div style={{ background: 'var(--butter)', borderRadius: 10, padding: '8px 14px', fontSize: 13, marginBottom: 14 }}>{pwError}</div>}
+              <div className="field" style={{ marginBottom: 12 }}>
+                <label className="label">Current password</label>
+                <input className="input" type="password" value={currentPw} onChange={e => setCurrentPw(e.target.value)} />
+              </div>
+              <div className="field" style={{ marginBottom: 12 }}>
+                <label className="label">New password</label>
+                <input className="input" type="password" value={newPw} onChange={e => setNewPw(e.target.value)} />
+              </div>
+              <div className="field" style={{ marginBottom: 16 }}>
+                <label className="label">Confirm new password</label>
+                <input className="input" type="password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} onKeyDown={e => e.key === 'Enter' && changePassword()} />
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button className="btn btn-ghost" onClick={() => { setChangePwOpen(false); setPwError(''); setCurrentPw(''); setNewPw(''); setConfirmPw(''); }}>Cancel</button>
+                <button className="btn btn-primary" onClick={changePassword} disabled={pwSaving}>
+                  {pwSaving ? 'Saving…' : 'Update password'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </>

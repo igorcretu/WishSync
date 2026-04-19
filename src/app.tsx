@@ -26,7 +26,6 @@ const THEMES = [
 // ---- helpers ----
 
 function apiWishToWish(w: any, currentUserId: string): Wish {
-  // build reserved field compatible with existing components
   let reserved: Wish['reserved'] = null;
   if (w.reservation !== undefined) {
     if (w.reservation === null) reserved = null;
@@ -37,7 +36,6 @@ function apiWishToWish(w: any, currentUserId: string): Wish {
     title: w.title,
     image: {
       tint: w.imageTint,
-      // if real image exists, imageUrl() gives the full URL; we stuff it in label so Placeholder can use it
       label: imageUrl(w.imagePath) || w.imageLabel,
     },
     price: w.price,
@@ -73,6 +71,21 @@ function occasionDaysAway(dateStr: string): number {
   return Math.ceil((target.getTime() - now.getTime()) / 86400000);
 }
 
+function apiOccasionToOccasion(o: any): Occasion {
+  const [monthStr, dayStr] = (o.date as string).split(' ');
+  return {
+    id: o.id,
+    circleId: o.circleId,
+    title: o.title,
+    date: o.date,
+    day: dayStr ?? '',
+    month: (monthStr ?? '').toUpperCase(),
+    daysAway: occasionDaysAway(o.date),
+    person: o.personId ?? 'both',
+    color: o.color,
+  };
+}
+
 // ---- main App ----
 
 const App: React.FC = () => {
@@ -80,7 +93,6 @@ const App: React.FC = () => {
 
   if (authLoading) return <div className="auth-screen"><div style={{ fontSize: 24 }}>Loading…</div></div>;
 
-  // Handle invite links: /invite/:token
   const inviteMatch = window.location.pathname.match(/^\/invite\/([^/]+)/);
   if (inviteMatch) {
     if (!user) return <AuthViews />;
@@ -110,6 +122,9 @@ const AppInner: React.FC = () => {
   const [theme, setTheme] = React.useState<ThemeId>(TWEAK_DEFAULTS.theme as ThemeId);
   const [tweaksOpen, setTweaksOpen] = React.useState(false);
 
+  // friend member wishlist view
+  const [friendView, setFriendView] = React.useState<{ circleId: string; person: Person; wishes: Wish[]; loaded: boolean } | null>(null);
+
   // ---- data ----
   const [myWishes, setMyWishes] = React.useState<Wish[]>([]);
   const [partnerWishes, setPartnerWishes] = React.useState<Wish[]>([]);
@@ -134,7 +149,6 @@ const AppInner: React.FC = () => {
       setMyWishes(myW.map(w => apiWishToWish(w, user.id)));
       setMyCircles(circleList);
 
-      // derive partner + friends from circles
       const couple = circleList.find(c => c.type === 'couple');
       const otherMembers = circleList
         .flatMap(c => c.members)
@@ -149,7 +163,6 @@ const AppInner: React.FC = () => {
           const p = apiUserToPerson(partnerMember.user);
           setPartner(p);
           setFriends(uniqueOthers.filter(o => o.id !== p.id));
-          // fetch partner wishes
           circleApi.memberWishes(couple.id, partnerMember.userId).then(pw => {
             setPartnerWishes(pw.map(w => apiWishToWish(w, user.id)));
           }).catch(() => {});
@@ -160,16 +173,7 @@ const AppInner: React.FC = () => {
         setFriends(uniqueOthers);
       }
 
-      setOccasionList(occ.map(o => ({
-        id: o.id,
-        title: o.title,
-        date: o.date,
-        day: o.date.split(' ')[1] ?? '',
-        month: o.date.split(' ')[0]?.toUpperCase() ?? '',
-        daysAway: occasionDaysAway(o.date),
-        person: o.personId ?? 'both',
-        color: o.color,
-      })));
+      setOccasionList(occ.map(apiOccasionToOccasion).sort((a, b) => a.daysAway - b.daysAway));
 
       setHistoryList(hist.map(h => ({
         id: h.id,
@@ -229,11 +233,12 @@ const AppInner: React.FC = () => {
     try {
       const res = await wishApi.reserve(secretWish.id);
       const nowReserved = res.reserved;
-      setPartnerWishes(prev =>
+      const updateWishReservation = (prev: Wish[]) =>
         prev.map(w => w.id === secretWish.id
           ? { ...w, reserved: nowReserved ? { by: user!.id } : null }
-          : w)
-      );
+          : w);
+      setPartnerWishes(updateWishReservation);
+      if (friendView) setFriendView(prev => prev ? { ...prev, wishes: updateWishReservation(prev.wishes) } : null);
       if (detailWish?.id === secretWish.id) {
         setDetailWish(prev => prev ? { ...prev, reserved: nowReserved ? { by: user!.id } : null } : null);
       }
@@ -257,6 +262,32 @@ const AppInner: React.FC = () => {
       setView('mine');
     } catch {
       showToast('Could not delete wish');
+    }
+  };
+
+  // ---- update wish ----
+  const updateWish = (id: string, updated: Wish) => {
+    setMyWishes(prev => prev.map(w => w.id === id ? updated : w));
+    setDetailWish(updated);
+    showToast('Wish updated ✨');
+  };
+
+  // ---- purchase wish ----
+  const purchaseWish = async (id: string) => {
+    try {
+      setPartnerWishes(prev => prev.filter(w => w.id !== id));
+      if (friendView) setFriendView(prev => prev ? { ...prev, wishes: prev.wishes.filter(w => w.id !== id) } : null);
+      setView(detailMode === 'partner' ? 'partner' : 'friend');
+      // reload history
+      historyApi.list().then(hist => {
+        setHistoryList(hist.map(h => ({
+          id: h.id, title: h.title, for: h.for, by: h.by, date: h.date, price: h.price,
+          image: { tint: h.imageTint, label: imageUrl(h.imagePath) || h.imageLabel },
+        })));
+      }).catch(() => {});
+      showToast('Marked as purchased 🎁');
+    } catch {
+      showToast('Could not mark as purchased');
     }
   };
 
@@ -286,6 +317,34 @@ const AppInner: React.FC = () => {
     }
   };
 
+  // ---- occasion CRUD ----
+  const addOccasion = (o: Occasion) => {
+    setOccasionList(prev => [...prev, o].sort((a, b) => a.daysAway - b.daysAway));
+  };
+  const editOccasion = (o: Occasion) => {
+    setOccasionList(prev => prev.map(x => x.id === o.id ? o : x).sort((a, b) => a.daysAway - b.daysAway));
+  };
+  const removeOccasion = (id: string) => {
+    setOccasionList(prev => prev.filter(o => o.id !== id));
+  };
+
+  // ---- group member wishlist ----
+  const viewMember = async (circleId: string, person: Person) => {
+    setFriendView({ circleId, person, wishes: [], loaded: false });
+    setView('friend');
+    try {
+      const wishes = await circleApi.memberWishes(circleId, person.id);
+      setFriendView({ circleId, person, wishes: wishes.map(w => apiWishToWish(w, user!.id)), loaded: true });
+    } catch {
+      setFriendView(prev => prev ? { ...prev, loaded: true } : null);
+    }
+  };
+
+  // ---- circle updates ----
+  const updateCircle = (updated: ApiCircle) => {
+    setMyCircles(prev => prev.map(c => c.id === updated.id ? updated : c));
+  };
+
   if (dataLoading) {
     return (
       <div className="app">
@@ -309,15 +368,63 @@ const AppInner: React.FC = () => {
       case 'mine':
         return <MyList wishes={myWishes} me={me} onOpen={w => openDetail(w, 'mine')} onAdd={() => setShowAdd(true)} partnerName={effectivePartner.name} friendsCount={friends.length} />;
       case 'detail':
-        return detailWish && <DetailView wish={detailWish} mode={detailMode} me={me} partner={effectivePartner} friends={friends} onBack={() => setView(detailMode === 'partner' ? 'partner' : 'mine')} onReserve={handleReserveClick} onDelete={detailMode === 'mine' ? deleteWish : undefined} />;
+        return detailWish && (
+          <DetailView
+            wish={detailWish}
+            mode={detailMode}
+            me={me}
+            partner={effectivePartner}
+            friends={friends}
+            onBack={() => setView(detailMode === 'partner' ? 'partner' : 'mine')}
+            onReserve={handleReserveClick}
+            onDelete={detailMode === 'mine' ? deleteWish : undefined}
+            onUpdate={detailMode === 'mine' ? updateWish : undefined}
+            onPurchase={detailMode === 'partner' ? purchaseWish : undefined}
+          />
+        );
       case 'occasions':
-        return <OccasionsView occasions={occasionList} partner={effectivePartner} friends={friends} />;
+        return (
+          <OccasionsView
+            occasions={occasionList}
+            partner={effectivePartner}
+            friends={friends}
+            circles={myCircles}
+            onAdd={addOccasion}
+            onEdit={editOccasion}
+            onDelete={removeOccasion}
+          />
+        );
       case 'history':
         return <HistoryView purchased={historyList} />;
       case 'groups':
-        return <GroupsView me={me} partner={effectivePartner} friends={friends} circles={myCircles} onCircleCreated={circle => setMyCircles(prev => [...prev, circle])} onCircleLeft={id => setMyCircles(prev => prev.filter(c => c.id !== id))} />;
+        return (
+          <GroupsView
+            me={me}
+            partner={effectivePartner}
+            friends={friends}
+            circles={myCircles}
+            myId={user!.id}
+            onCircleCreated={circle => setMyCircles(prev => [...prev, circle])}
+            onCircleLeft={id => setMyCircles(prev => prev.filter(c => c.id !== id))}
+            onCircleUpdated={updateCircle}
+            onViewMember={viewMember}
+          />
+        );
       case 'profile':
         return <ProfileView me={me} apiUser={user!} onLogout={logout} onUpdateUser={updateUser} />;
+      case 'friend':
+        if (!friendView) return null;
+        return (
+          <PartnerList
+            wishes={friendView.loaded ? friendView.wishes : []}
+            partner={friendView.person}
+            me={me}
+            onOpen={w => openDetail(w, 'partner')}
+            onReserve={handleReserveClick}
+            backLabel="Back to groups"
+            onBack={() => setView('groups')}
+          />
+        );
       default:
         return null;
     }
