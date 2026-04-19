@@ -30,6 +30,13 @@ interface AvatarProps {
 }
 export const Avatar: React.FC<AvatarProps> = ({ person, size = "md" }) => {
   const cls = size === "lg" ? "avatar lg" : size === "sm" ? "avatar sm" : "avatar";
+  if (person.avatarUrl) {
+    return (
+      <div className={cls} style={{ background: person.color, padding: 0, overflow: 'hidden' }}>
+        <img src={person.avatarUrl} alt={person.initial} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+      </div>
+    );
+  }
   return (
     <div className={cls} style={{ background: person.color }}>
       {person.initial}

@@ -32,6 +32,7 @@ export interface ApiUser {
   color: string;
   initial: string;
   birthday: string | null;
+  avatarPath: string | null;
   notifBirthdays: boolean;
   notifPriceDrops: boolean;
   notifNewWishes: boolean;
@@ -87,6 +88,13 @@ export interface ApiHistoryItem {
   imagePath: string | null;
 }
 
+export interface ApiActivityItem {
+  type: 'reserve' | 'purchase';
+  person: { name: string; nickname: string; color: string; initial: string };
+  wishTitle: string;
+  at: string;
+}
+
 // ---- auth ----
 
 export const auth = {
@@ -100,6 +108,23 @@ export const auth = {
 
   updateMe: (data: Partial<Pick<ApiUser, 'name' | 'nickname' | 'color' | 'birthday' | 'notifBirthdays' | 'notifPriceDrops' | 'notifNewWishes' | 'notifReactions'>> & { currentPassword?: string; newPassword?: string }) =>
     request<ApiUser>('PATCH', '/api/auth/me', data),
+
+  deleteAccount: (password: string) => request<void>('DELETE', '/api/auth/me', { password }),
+
+  uploadAvatar: async (file: File): Promise<ApiUser> => {
+    const token = getToken();
+    const form = new FormData();
+    form.append('avatar', file);
+    const res = await fetch(`${BASE}/api/auth/me/avatar`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    });
+    if (!res.ok) throw new Error('Upload failed');
+    return res.json();
+  },
+
+  removeAvatar: () => request<ApiUser>('DELETE', '/api/auth/me/avatar'),
 };
 
 // ---- wishes ----
@@ -139,6 +164,8 @@ export const wishes = {
     request<{ active: boolean }>('POST', `/api/wishes/${id}/reactions/${type}`),
 
   purchase: (id: string) => request<{ id: string }>('POST', `/api/wishes/${id}/purchase`),
+
+  activity: () => request<ApiActivityItem[]>('GET', '/api/wishes/activity'),
 };
 
 // ---- circles ----

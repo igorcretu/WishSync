@@ -9,7 +9,7 @@ import {
 import { AuthViews } from './auth-views';
 import { useAuth } from './AuthContext';
 import { wishes as wishApi, circles as circleApi, occasions as occasionApi, history as historyApi, imageUrl } from './api';
-import type { ApiCircle } from './api';
+import type { ApiCircle, ApiActivityItem } from './api';
 
 // ---- theme ----
 
@@ -54,7 +54,11 @@ function apiWishToWish(w: any, currentUserId: string): Wish {
 }
 
 function apiUserToPerson(u: any): Person {
-  return { id: u.id, name: u.name, nickname: u.nickname, color: u.color, initial: u.initial, birthday: u.birthday ?? undefined };
+  return {
+    id: u.id, name: u.name, nickname: u.nickname, color: u.color, initial: u.initial,
+    birthday: u.birthday ?? undefined,
+    avatarUrl: u.avatarPath ? imageUrl(u.avatarPath) ?? undefined : undefined,
+  };
 }
 
 function occasionDaysAway(dateStr: string): number {
@@ -133,6 +137,7 @@ const AppInner: React.FC = () => {
   const [myCircles, setMyCircles] = React.useState<ApiCircle[]>([]);
   const [occasionList, setOccasionList] = React.useState<Occasion[]>([]);
   const [historyList, setHistoryList] = React.useState<HistoryItem[]>([]);
+  const [activityFeed, setActivityFeed] = React.useState<ApiActivityItem[]>([]);
   const [dataLoading, setDataLoading] = React.useState(true);
 
   const me: Person = apiUserToPerson(user);
@@ -140,6 +145,9 @@ const AppInner: React.FC = () => {
   // ---- initial load ----
   React.useEffect(() => {
     if (!user) return;
+    // Load activity feed in the background (non-blocking)
+    wishApi.activity().then(setActivityFeed).catch(() => {});
+
     Promise.all([
       wishApi.list().catch(() => [] as any[]),
       circleApi.list().catch(() => [] as any[]),
@@ -361,7 +369,7 @@ const AppInner: React.FC = () => {
   const renderView = () => {
     switch (view) {
       case 'dashboard':
-        return <Dashboard partnerWishes={partnerWishes} myWishes={myWishes} me={me} partner={effectivePartner} hasPartner={!!partner} occasions={occasionList} onNav={setView} />;
+        return <Dashboard partnerWishes={partnerWishes} myWishes={myWishes} me={me} partner={effectivePartner} hasPartner={!!partner} occasions={occasionList} activityFeed={activityFeed} onNav={setView} />;
       case 'partner':
         if (!partner) return <EmptyPartnerView onGoToGroups={() => setView('groups')} />;
         return <PartnerList wishes={partnerWishes} partner={effectivePartner} me={me} onOpen={w => openDetail(w, 'partner')} onReserve={handleReserveClick} />;
@@ -395,7 +403,7 @@ const AppInner: React.FC = () => {
           />
         );
       case 'history':
-        return <HistoryView purchased={historyList} />;
+        return <HistoryView purchased={historyList} myNickname={user!.nickname} />;
       case 'groups':
         return (
           <GroupsView
@@ -411,7 +419,7 @@ const AppInner: React.FC = () => {
           />
         );
       case 'profile':
-        return <ProfileView me={me} apiUser={user!} onLogout={logout} onUpdateUser={updateUser} />;
+        return <ProfileView me={me} apiUser={user!} onLogout={logout} onUpdateUser={updateUser} onDeleteAccount={logout} />;
       case 'friend':
         if (!friendView) return null;
         return (

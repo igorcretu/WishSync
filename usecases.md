@@ -20,7 +20,7 @@
 | 1.5 | Owner | Change password | ✅ done |
 | 1.6 | Owner | Delete account + all data | ❌ missing |
 | 1.7 | System | Send welcome email on registration | ✅ done |
-| 1.8 | Owner | Set preferred currency (shown on all prices) | ❌ missing |
+
 
 ---
 
@@ -156,13 +156,6 @@
 
 ---
 
-## 10. Price Tracking (Nice-to-have)
-
-| # | Actor | Use Case | Status |
-|---|-------|----------|--------|
-| 10.1 | Owner | Track price changes on a wish over time | ❌ missing |
-| 10.2 | System | Poll prices periodically, update stored price | ❌ missing |
-| 10.3 | System | Send alert email when price drops below threshold | ❌ missing |
 
 ---
 
@@ -183,7 +176,7 @@
 |---|-------|----------|--------|
 | 12.1 | Gifter | React to a wish (♥ / 👀 / 🎁) via UI button | ❌ missing in UI (API exists) |
 | 12.2 | Owner | See reaction breakdown per wish in detail view | ✅ done |
-| 12.3 | System | Email owner when their wish gets a reaction | ❌ missing |
+
 
 ---
 

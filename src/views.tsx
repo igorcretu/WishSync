@@ -3,7 +3,7 @@
 import React from 'react';
 import type { Wish, Person, Occasion, HistoryItem, ViewId, Priority, OccasionTag } from './types';
 import { circles as circleApi, wishes as wishApi, occasions as occasionApi, auth as authApi, invites as invitesApi } from './api';
-import type { ApiCircle, ApiUser } from './api';
+import type { ApiCircle, ApiUser, ApiActivityItem } from './api';
 import { CATEGORIES, OCCASION_TAGS, PRIORITY_LABELS, PH } from './data';
 import {
   IconLock, IconGift, IconSearch, IconSparkle, IconPlus,
@@ -189,6 +189,8 @@ interface PartnerListProps {
 export const PartnerList: React.FC<PartnerListProps> = ({ wishes, partner, me, onOpen, onReserve, backLabel, onBack }) => {
   const [cat, setCat] = React.useState<string>("All");
   const [pri, setPri] = React.useState<string>("All");
+  const [search, setSearch] = React.useState<string>("");
+  const [sortBy, setSortBy] = React.useState<'default' | 'price-asc' | 'price-desc'>('default');
 
   const doSurprise = () => {
     const unreserved = wishes.filter(w => !w.reserved);
@@ -196,13 +198,17 @@ export const PartnerList: React.FC<PartnerListProps> = ({ wishes, partner, me, o
     onReserve(unreserved[Math.floor(Math.random() * unreserved.length)]);
   };
 
-  const filtered = wishes.filter(w => {
+  const q = search.toLowerCase();
+  let filtered = wishes.filter(w => {
     if (cat !== "All" && w.category !== cat) return false;
     if (pri === "Must have" && w.priority !== "must") return false;
     if (pri === "Would love" && w.priority !== "love") return false;
     if (pri === "Nice to have" && w.priority !== "nice") return false;
+    if (q && !w.title.toLowerCase().includes(q) && !w.store.toLowerCase().includes(q) && !w.notes.toLowerCase().includes(q)) return false;
     return true;
   });
+  if (sortBy === 'price-asc') filtered = [...filtered].sort((a, b) => a.price - b.price);
+  if (sortBy === 'price-desc') filtered = [...filtered].sort((a, b) => b.price - a.price);
 
   const reservedCount = wishes.filter(w => !!w.reserved).length;
   const totalValue = wishes.reduce((sum, w) => sum + w.price, 0);
@@ -221,7 +227,26 @@ export const PartnerList: React.FC<PartnerListProps> = ({ wishes, partner, me, o
         subtitle={`${wishes.length} wishes · ${reservedCount} already claimed · $${totalValue.toLocaleString()} total`}
         actions={
           <>
-            <button className="btn btn-ghost"><IconSearch size={15} /> Search</button>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <span style={{ position: 'absolute', left: 10, opacity: 0.4, pointerEvents: 'none', display: 'flex' }}><IconSearch size={14} /></span>
+              <input
+                className="input"
+                placeholder="Search…"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                style={{ paddingLeft: 30, width: 160, height: 36, fontSize: 13 }}
+              />
+            </div>
+            <select
+              className="input"
+              value={sortBy}
+              onChange={e => setSortBy(e.target.value as typeof sortBy)}
+              style={{ height: 36, fontSize: 13, width: 'auto', paddingRight: 28 }}
+            >
+              <option value="default">Sort: Default</option>
+              <option value="price-asc">Price: Low → High</option>
+              <option value="price-desc">Price: High → Low</option>
+            </select>
             <button className="btn btn-primary" onClick={doSurprise}><IconSparkle size={15} /> Surprise mode</button>
           </>
         }
@@ -275,14 +300,20 @@ interface MyListProps {
 export const MyList: React.FC<MyListProps> = ({ wishes, me, onOpen, onAdd, partnerName = 'Partner', friendsCount = 0 }) => {
   const [cat, setCat] = React.useState<string>("All");
   const [pri, setPri] = React.useState<string>("All");
+  const [search, setSearch] = React.useState<string>("");
+  const [sortBy, setSortBy] = React.useState<'default' | 'price-asc' | 'price-desc'>('default');
 
-  const filtered = wishes.filter(w => {
+  const q = search.toLowerCase();
+  let filtered = wishes.filter(w => {
     if (cat !== "All" && w.category !== cat) return false;
     if (pri === "Must have" && w.priority !== "must") return false;
     if (pri === "Would love" && w.priority !== "love") return false;
     if (pri === "Nice to have" && w.priority !== "nice") return false;
+    if (q && !w.title.toLowerCase().includes(q) && !w.store.toLowerCase().includes(q) && !w.notes.toLowerCase().includes(q)) return false;
     return true;
   });
+  if (sortBy === 'price-asc') filtered = [...filtered].sort((a, b) => a.price - b.price);
+  if (sortBy === 'price-desc') filtered = [...filtered].sort((a, b) => b.price - a.price);
 
   return (
     <>
@@ -293,6 +324,26 @@ export const MyList: React.FC<MyListProps> = ({ wishes, me, onOpen, onAdd, partn
         subtitle={`${wishes.length} wishes · shared with ${partnerName}${friendsCount > 0 ? ` + ${friendsCount} others` : ''}`}
         actions={
           <>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <span style={{ position: 'absolute', left: 10, opacity: 0.4, pointerEvents: 'none', display: 'flex' }}><IconSearch size={14} /></span>
+              <input
+                className="input"
+                placeholder="Search…"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                style={{ paddingLeft: 30, width: 160, height: 36, fontSize: 13 }}
+              />
+            </div>
+            <select
+              className="input"
+              value={sortBy}
+              onChange={e => setSortBy(e.target.value as typeof sortBy)}
+              style={{ height: 36, fontSize: 13, width: 'auto', paddingRight: 28 }}
+            >
+              <option value="default">Sort: Newest</option>
+              <option value="price-asc">Price: Low → High</option>
+              <option value="price-desc">Price: High → Low</option>
+            </select>
             <button className="btn btn-primary" onClick={onAdd}><IconPlus size={15} /> Add wish</button>
           </>
         }
@@ -365,6 +416,8 @@ export const DetailView: React.FC<DetailViewProps> = ({ wish, mode, me, partner,
   const reserver = wish.reserved ? [...friends, me, partner].find(p => p.id === wish.reserved!.by) : null;
 
   const [confirm, confirmEl] = useConfirm();
+  const [myReactions, setMyReactions] = React.useState<Set<string>>(new Set());
+  const [reactionCounts, setReactionCounts] = React.useState({ heart: wish.reactions.heart, eyes: wish.reactions.eyes, gift: wish.reactions.gift });
   const [isEditing, setIsEditing] = React.useState(false);
   const [editTitle, setEditTitle] = React.useState(wish.title);
   const [editPrice, setEditPrice] = React.useState(String(wish.price));
@@ -379,6 +432,21 @@ export const DetailView: React.FC<DetailViewProps> = ({ wish, mode, me, partner,
   const [saving, setSaving] = React.useState(false);
   const [purchasing, setPurchasing] = React.useState(false);
   const [editError, setEditError] = React.useState('');
+
+  const handleReact = async (type: 'heart' | 'eyes' | 'gift') => {
+    try {
+      const res = await wishApi.react(wish.id, type);
+      setMyReactions(prev => {
+        const next = new Set(prev);
+        res.active ? next.add(type) : next.delete(type);
+        return next;
+      });
+      setReactionCounts(prev => ({
+        ...prev,
+        [type]: res.active ? prev[type] + 1 : prev[type] - 1,
+      }));
+    } catch {}
+  };
 
   const saveEdit = async () => {
     if (!editTitle.trim()) { setEditError('Title is required.'); return; }
@@ -520,6 +588,20 @@ export const DetailView: React.FC<DetailViewProps> = ({ wish, mode, me, partner,
                       </a>
                     )}
                   </div>
+
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 18 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-muted)", textTransform: 'uppercase', letterSpacing: '0.06em' }}>React:</div>
+                    {(['heart', 'eyes', 'gift'] as const).map(type => (
+                      <button
+                        key={type}
+                        className={`reaction ${myReactions.has(type) ? 'active' : ''}`}
+                        onClick={() => handleReact(type)}
+                        title={type === 'heart' ? 'Love it' : type === 'eyes' ? 'I want this too' : 'I\'ll get this'}
+                      >
+                        {type === 'heart' ? '♥' : type === 'eyes' ? '👀' : '🎁'} {reactionCounts[type]}
+                      </button>
+                    ))}
+                  </div>
                 </>
               )}
 
@@ -640,10 +722,13 @@ interface DashboardProps {
   partner: Person;
   hasPartner: boolean;
   occasions: Occasion[];
+  activityFeed?: ApiActivityItem[];
   onNav: (v: ViewId) => void;
 }
-export const Dashboard: React.FC<DashboardProps> = ({ partnerWishes, myWishes, me, partner, hasPartner, occasions, onNav }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ partnerWishes, myWishes, me, partner, hasPartner, occasions, activityFeed, onNav }) => {
   const nextOccasion = occasions[0];
+  const reservedWishes = partnerWishes.filter(w => !!w.reserved);
+  const budgetTotal = reservedWishes.reduce((sum, w) => sum + w.price, 0);
   return (
     <>
       <PageHeader
@@ -681,11 +766,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ partnerWishes, myWishes, m
           )}
           <div className="dash-deco">🎂</div>
         </div>
-        <div className="dash-tile ink" onClick={() => onNav("groups")} style={{ cursor: "pointer" }}>
-          <div className="dash-label" style={{ opacity: 0.7 }}>Reserved gifts</div>
-          <div className="dash-value">{partnerWishes.filter(w => !!w.reserved).length}</div>
-          <div className="dash-sub" style={{ opacity: 0.7 }}>of {partnerWishes.length} on {partner.name}'s list</div>
-          <div className="dash-deco">🤫</div>
+        <div className="dash-tile ink" onClick={() => onNav("history")} style={{ cursor: "pointer" }}>
+          <div className="dash-label" style={{ opacity: 0.7 }}>Budget reserved</div>
+          <div className="dash-value">{budgetTotal > 0 ? `$${budgetTotal.toLocaleString()}` : '—'}</div>
+          <div className="dash-sub" style={{ opacity: 0.7 }}>{reservedWishes.length} gift{reservedWishes.length !== 1 ? 's' : ''} claimed from {partner.name}'s list</div>
+          <div className="dash-deco">💰</div>
         </div>
       </div>
 
@@ -724,6 +809,33 @@ export const Dashboard: React.FC<DashboardProps> = ({ partnerWishes, myWishes, m
           ))}
         </div>
       </div>
+
+      {activityFeed && activityFeed.length > 0 && (
+        <div className="section">
+          <div className="section-header">
+            <h2 className="section-title">Circle activity</h2>
+            <button className="btn btn-ghost btn-sm" onClick={() => onNav("history")}>History →</button>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {activityFeed.map((item, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', background: 'var(--paper)', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-sm)' }}>
+                <div className="avatar sm" style={{ background: item.person.color, flexShrink: 0 }}>{item.person.initial}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14 }}>
+                    <strong>{item.person.nickname}</strong>
+                    {item.type === 'reserve' ? ' reserved ' : ' bought '}
+                    <em>"{item.wishTitle}"</em>
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--ink-muted)' }}>
+                    {new Date(item.at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </div>
+                </div>
+                <span style={{ fontSize: 18 }}>{item.type === 'reserve' ? '🤫' : '🎁'}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </>
   );
 };
@@ -1159,38 +1271,82 @@ export const OccasionsView: React.FC<OccasionsViewProps> = ({ occasions, partner
 // ---------- History ----------
 interface HistoryViewProps {
   purchased: HistoryItem[];
+  myNickname?: string;
 }
-export const HistoryView: React.FC<HistoryViewProps> = ({ purchased }) => (
-  <>
-    <PageHeader
-      eyebrow="Archive"
-      title="What we've"
-      accent="already given."
-      subtitle="So you never repeat a gift (unless it's on purpose)."
-    />
-    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      {purchased.map(h => (
-        <div key={h.id} className="card" style={{ display: "flex", alignItems: "center", gap: 18, padding: 16 }}>
-          <div style={{ width: 72, height: 72, borderRadius: 14, overflow: "hidden", flexShrink: 0 }}>
-            <Placeholder tint={h.image.tint} label={h.image.label} />
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontFamily: "var(--font-display)", fontSize: 20 }}>{h.title}</div>
-            <div style={{ fontSize: 13, color: "var(--ink-muted)" }}>
-              For <strong style={{ color: "var(--ink)" }}>{h.for}</strong> · from <strong style={{ color: "var(--ink)" }}>{h.by}</strong> · {h.date}
+
+function HistoryRow({ h }: { h: HistoryItem }) {
+  return (
+    <div className="card" style={{ display: "flex", alignItems: "center", gap: 18, padding: 16 }}>
+      <div style={{ width: 72, height: 72, borderRadius: 14, overflow: "hidden", flexShrink: 0 }}>
+        <Placeholder tint={h.image.tint} label={h.image.label} />
+      </div>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontFamily: "var(--font-display)", fontSize: 20 }}>{h.title}</div>
+        <div style={{ fontSize: 13, color: "var(--ink-muted)" }}>
+          For <strong style={{ color: "var(--ink)" }}>{h.for}</strong> · from <strong style={{ color: "var(--ink)" }}>{h.by}</strong> · {h.date}
+        </div>
+      </div>
+      <div style={{ fontFamily: "var(--font-display)", fontSize: 22 }}>${h.price}</div>
+    </div>
+  );
+}
+
+export const HistoryView: React.FC<HistoryViewProps> = ({ purchased, myNickname }) => {
+  const given = myNickname ? purchased.filter(h => h.by === myNickname) : [];
+  const received = myNickname ? purchased.filter(h => h.for === myNickname) : [];
+  const all = !myNickname ? purchased : [];
+
+  return (
+    <>
+      <PageHeader
+        eyebrow="Archive"
+        title="What we've"
+        accent="already given."
+        subtitle="So you never repeat a gift (unless it's on purpose)."
+      />
+
+      {myNickname ? (
+        <>
+          <div className="section">
+            <div className="section-header">
+              <h2 className="section-title">Gifts I've given 🎁</h2>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {given.map(h => <HistoryRow key={h.id} h={h} />)}
+              {given.length === 0 && (
+                <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink-muted)' }}>
+                  Nothing yet — reserve and mark a wish as purchased to see it here.
+                </div>
+              )}
             </div>
           </div>
-          <div style={{ fontFamily: "var(--font-display)", fontSize: 22 }}>${h.price}</div>
-        </div>
-      ))}
-      {purchased.length === 0 && (
-        <div style={{ textAlign: 'center', padding: 60, color: 'var(--ink-muted)' }}>
-          No gifts in the history yet. Mark a reservation as purchased to see it here.
+          <div className="section">
+            <div className="section-header">
+              <h2 className="section-title">Gifts I've received 💝</h2>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {received.map(h => <HistoryRow key={h.id} h={h} />)}
+              {received.length === 0 && (
+                <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink-muted)' }}>
+                  Nothing yet — when someone buys from your wishlist, it'll appear here.
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {all.map(h => <HistoryRow key={h.id} h={h} />)}
+          {all.length === 0 && (
+            <div style={{ textAlign: 'center', padding: 60, color: 'var(--ink-muted)' }}>
+              No gifts in the history yet. Mark a reservation as purchased to see it here.
+            </div>
+          )}
         </div>
       )}
-    </div>
-  </>
-);
+    </>
+  );
+};
 
 // ---------- Groups ----------
 interface GroupsViewProps {
@@ -1542,8 +1698,35 @@ interface ProfileViewProps {
   apiUser: ApiUser;
   onLogout: () => void;
   onUpdateUser: (u: ApiUser) => void;
+  onDeleteAccount?: () => void;
 }
-export const ProfileView: React.FC<ProfileViewProps> = ({ me, apiUser, onLogout, onUpdateUser }) => {
+export const ProfileView: React.FC<ProfileViewProps> = ({ me, apiUser, onLogout, onUpdateUser, onDeleteAccount }) => {
+  const avatarInputRef = React.useRef<HTMLInputElement>(null);
+  const [avatarLoading, setAvatarLoading] = React.useState(false);
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarLoading(true);
+    try {
+      const updated = await authApi.uploadAvatar(file);
+      onUpdateUser(updated);
+    } catch {} finally {
+      setAvatarLoading(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    setAvatarLoading(true);
+    try {
+      const updated = await authApi.removeAvatar();
+      onUpdateUser(updated);
+    } catch {} finally {
+      setAvatarLoading(false);
+    }
+  };
+
   const [notifs, setNotifs] = React.useState({
     notifBirthdays: apiUser.notifBirthdays,
     notifPriceDrops: apiUser.notifPriceDrops,
@@ -1560,6 +1743,11 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ me, apiUser, onLogout,
   const [pwSaving, setPwSaving] = React.useState(false);
   const [pwDone, setPwDone] = React.useState(false);
 
+  const [deleteOpen, setDeleteOpen] = React.useState(false);
+  const [deletePw, setDeletePw] = React.useState('');
+  const [deleteError, setDeleteError] = React.useState('');
+  const [deleteLoading, setDeleteLoading] = React.useState(false);
+
   const toggle = async (key: keyof typeof notifs) => {
     const next = { ...notifs, [key]: !notifs[key] };
     setNotifs(next);
@@ -1569,6 +1757,22 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ me, apiUser, onLogout,
       onUpdateUser(updated);
     } catch {} finally {
       setSaving(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!deletePw) { setDeleteError('Enter your password to confirm.'); return; }
+    setDeleteLoading(true);
+    setDeleteError('');
+    try {
+      await authApi.deleteAccount(deletePw);
+      localStorage.removeItem('ws-token');
+      onDeleteAccount?.();
+      window.location.reload();
+    } catch (e: any) {
+      setDeleteError(e.message || 'Could not delete account');
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -1602,11 +1806,33 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ me, apiUser, onLogout,
       <PageHeader eyebrow="You" title="Your profile." subtitle="How you show up in the gifting world." />
       <div style={{ maxWidth: 600 }}>
         <div className="card" style={{ padding: 28, display: "flex", alignItems: "center", gap: 20, marginBottom: 20 }}>
-          <Avatar person={me} size="lg" />
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+            <Avatar person={me} size="lg" />
+            <button
+              onClick={() => avatarInputRef.current?.click()}
+              disabled={avatarLoading}
+              style={{
+                position: 'absolute', bottom: -4, right: -4,
+                width: 26, height: 26, borderRadius: '50%',
+                background: 'var(--ink)', color: 'white', border: '2px solid var(--paper)',
+                fontSize: 12, cursor: 'pointer', display: 'grid', placeItems: 'center',
+                opacity: avatarLoading ? 0.5 : 1,
+              }}
+              title="Change photo"
+            >
+              {avatarLoading ? '…' : '✏'}
+            </button>
+            <input ref={avatarInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarChange} />
+          </div>
           <div style={{ flex: 1 }}>
             <div style={{ fontFamily: "var(--font-display)", fontSize: 28 }}>{me.name}</div>
             <div style={{ color: "var(--ink-muted)" }}>@{me.nickname.toLowerCase()} · 🎂 {me.birthday}</div>
             <div style={{ fontSize: 13, color: "var(--ink-muted)" }}>{apiUser.email}</div>
+            {apiUser.avatarPath && (
+              <button className="btn btn-ghost btn-sm" style={{ marginTop: 6, fontSize: 12, color: 'var(--ink-muted)' }} onClick={handleRemoveAvatar} disabled={avatarLoading}>
+                Remove photo
+              </button>
+            )}
           </div>
           <button className="btn btn-ghost btn-sm" onClick={onLogout} style={{ color: 'var(--ink-muted)' }}>Sign out</button>
         </div>
@@ -1634,7 +1860,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ me, apiUser, onLogout,
           ))}
         </div>
 
-        <div className="card" style={{ padding: 24 }}>
+        <div className="card" style={{ padding: 24, marginBottom: 20 }}>
           <div style={{ fontFamily: "var(--font-display)", fontSize: 22, marginBottom: 4 }}>Security</div>
           <div style={{ fontSize: 13, color: 'var(--ink-muted)', marginBottom: 16 }}>Manage your account credentials</div>
           {!changePwOpen ? (
@@ -1659,6 +1885,36 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ me, apiUser, onLogout,
                 <button className="btn btn-ghost" onClick={() => { setChangePwOpen(false); setPwError(''); setCurrentPw(''); setNewPw(''); setConfirmPw(''); }}>Cancel</button>
                 <button className="btn btn-primary" onClick={changePassword} disabled={pwSaving}>
                   {pwSaving ? 'Saving…' : 'Update password'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="card" style={{ padding: 24, borderColor: 'rgba(192, 57, 43, 0.25)', border: '1px solid rgba(192,57,43,0.2)' }}>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 22, marginBottom: 4, color: '#C0392B' }}>Danger zone</div>
+          <div style={{ fontSize: 13, color: 'var(--ink-muted)', marginBottom: 16 }}>Permanently delete your account and all your data.</div>
+          {!deleteOpen ? (
+            <button className="btn btn-ghost" style={{ color: '#C0392B' }} onClick={() => setDeleteOpen(true)}>Delete my account…</button>
+          ) : (
+            <div>
+              <div style={{ background: 'rgba(192,57,43,0.08)', borderRadius: 10, padding: '10px 14px', fontSize: 13, marginBottom: 14, lineHeight: 1.5 }}>
+                This will permanently delete your account, all your wishes, and your circle memberships. <strong>This cannot be undone.</strong>
+              </div>
+              {deleteError && <div style={{ background: 'var(--butter)', borderRadius: 10, padding: '8px 14px', fontSize: 13, marginBottom: 14 }}>{deleteError}</div>}
+              <div className="field" style={{ marginBottom: 16 }}>
+                <label className="label">Confirm with your password</label>
+                <input className="input" type="password" value={deletePw} onChange={e => setDeletePw(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleDeleteAccount()} placeholder="Enter your password" />
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button className="btn btn-ghost" onClick={() => { setDeleteOpen(false); setDeleteError(''); setDeletePw(''); }}>Cancel</button>
+                <button
+                  className="btn btn-dark"
+                  style={{ background: '#C0392B', color: 'white' }}
+                  onClick={handleDeleteAccount}
+                  disabled={deleteLoading}
+                >
+                  {deleteLoading ? 'Deleting…' : 'Delete account forever'}
                 </button>
               </div>
             </div>

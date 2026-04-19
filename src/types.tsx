@@ -7,6 +7,7 @@ export interface Person {
   color: string;
   initial: string;
   birthday?: string;
+  avatarUrl?: string;
 }
 
 export interface WishImage {
