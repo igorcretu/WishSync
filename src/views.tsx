@@ -736,7 +736,7 @@ interface GroupsViewProps {
   onCircleCreated: (c: ApiCircle) => void;
   onCircleLeft: (id: string) => void;
 }
-export const GroupsView: React.FC<GroupsViewProps> = ({ me, circles, onCircleCreated, onCircleLeft }) => {
+export const GroupsView: React.FC<GroupsViewProps> = ({ circles, onCircleCreated, onCircleLeft }) => {
   const [creating, setCreating] = React.useState(false);
   const [newName, setNewName] = React.useState('');
   const [newType, setNewType] = React.useState<'couple' | 'friends'>('friends');

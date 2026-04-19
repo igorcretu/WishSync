@@ -144,7 +144,7 @@ const AppInner: React.FC = () => {
       const uniqueOthers = Array.from(new Map(otherMembers.map(p => [p.id, p])).values());
 
       if (couple) {
-        const partnerMember = couple.members.find(m => m.userId !== user.id);
+        const partnerMember = couple.members.find((m: any) => m.userId !== user.id);
         if (partnerMember) {
           const p = apiUserToPerson(partnerMember.user);
           setPartner(p);
