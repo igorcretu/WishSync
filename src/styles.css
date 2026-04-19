@@ -299,7 +299,48 @@ input, textarea, select { font-family: inherit; font-size: inherit; color: inher
   z-index: 1;
 }
 
-/* Secret mode overlay */
+/* ---- Wish card entrance stagger ---- */
+.wish-card { animation: fadeInUp 0.38s ease both; }
+.wish-card:nth-child(1) { animation-delay: 0ms; }
+.wish-card:nth-child(2) { animation-delay: 45ms; }
+.wish-card:nth-child(3) { animation-delay: 90ms; }
+.wish-card:nth-child(4) { animation-delay: 135ms; }
+.wish-card:nth-child(5) { animation-delay: 175ms; }
+.wish-card:nth-child(6) { animation-delay: 210ms; }
+.wish-card:nth-child(n+7) { animation-delay: 240ms; }
+
+/* ---- Dashboard tile entrance stagger ---- */
+.dash-tile {
+  animation: scaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.dash-tile:nth-child(1) { animation-delay: 0ms; }
+.dash-tile:nth-child(2) { animation-delay: 65ms; }
+.dash-tile:nth-child(3) { animation-delay: 130ms; }
+.dash-tile:nth-child(4) { animation-delay: 195ms; }
+.dash-tile:hover { transform: translateY(-4px) scale(1.015); box-shadow: var(--shadow); }
+
+/* ---- Timeline item entrance ---- */
+.timeline-item {
+  animation: fadeInUp 0.35s ease both;
+}
+.timeline-item:nth-child(1) { animation-delay: 0ms; }
+.timeline-item:nth-child(2) { animation-delay: 70ms; }
+.timeline-item:nth-child(3) { animation-delay: 140ms; }
+
+/* ---- General card entrance ---- */
+.card { animation: fadeInUp 0.38s ease both; }
+
+/* ---- Chip spring transition ---- */
+.chip { transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.chip.active { transform: scale(1.04); }
+
+/* ---- Reaction button bounce ---- */
+.reaction { transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.reaction.active { transform: scale(1.08); }
+.reaction:hover { transform: scale(1.08); }
+
+/* ---- Secret mode overlay */
 .secret-overlay {
   position: fixed;
   inset: 0;
@@ -357,9 +398,25 @@ input, textarea, select { font-family: inherit; font-size: inherit; color: inher
   display: flex; gap: 10px; justify-content: center;
 }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.88); }
+  60%  { transform: scale(1.04); }
+  to   { opacity: 1; transform: scale(1); }
+}
 @keyframes popIn {
-  from { transform: scale(0.8); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  from { transform: scale(0.82); opacity: 0; }
+  65%  { transform: scale(1.04); opacity: 1; }
+  to   { transform: scale(1); opacity: 1; }
+}
+@keyframes bounceIn {
+  0%   { transform: scale(0) rotate(-10deg); opacity: 0; }
+  60%  { transform: scale(1.25) rotate(4deg); opacity: 1; }
+  80%  { transform: scale(0.92) rotate(-2deg); }
+  100% { transform: scale(1) rotate(0deg); }
 }
 
 /* Inputs */
@@ -381,6 +438,59 @@ input, textarea, select { font-family: inherit; font-size: inherit; color: inher
 }
 .input:focus, .textarea:focus, .select:focus { border-color: var(--primary-deep); }
 .textarea { min-height: 80px; resize: vertical; font-family: inherit; }
+
+/* Filter panel */
+.filter-panel {
+  background: var(--paper);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  margin-bottom: 28px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.filter-search-row {
+  display: flex;
+  gap: 10px;
+}
+.filter-search-wrap {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+.filter-search-icon {
+  position: absolute;
+  left: 12px;
+  opacity: 0.4;
+  pointer-events: none;
+  display: flex;
+}
+.filter-search-wrap .input {
+  padding-left: 34px;
+  height: 40px;
+  font-size: 14px;
+}
+.filter-sort {
+  height: 40px;
+  font-size: 13px;
+  min-width: 168px;
+  padding: 0 14px;
+  appearance: auto;
+}
+.show-more-chip {
+  border-style: dashed !important;
+  border-color: var(--line) !important;
+  background: transparent !important;
+  color: var(--ink-muted) !important;
+  transform: none !important;
+}
+.show-more-chip:hover {
+  background: var(--cream-2) !important;
+  color: var(--ink) !important;
+  transform: none !important;
+}
 
 /* Chips */
 .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -558,9 +668,16 @@ input, textarea, select { font-family: inherit; font-size: inherit; color: inher
   font-size: 14px;
   box-shadow: var(--shadow-lg);
   z-index: 200;
-  animation: slideUp 0.3s ease;
+  animation: toastIn 0.3s ease both;
 }
-@keyframes slideUp { from { transform: translate(-50%, 20px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+@keyframes toastIn {
+  from { transform: translate(-50%, 16px); opacity: 0; }
+  to   { transform: translate(-50%, 0);   opacity: 1; }
+}
+@keyframes slideUpFromBottom {
+  from { transform: translateY(110%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
 
 /* Timeline */
 .timeline { display: flex; flex-direction: column; gap: 14px; }
@@ -852,7 +969,7 @@ input, textarea, select { font-family: inherit; font-size: inherit; color: inher
   .modal {
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
-    animation: slideUp 0.3s ease;
+    animation: slideUpFromBottom 0.38s cubic-bezier(0.32, 0.72, 0, 1) both;
     max-height: 92vh;
     overflow-y: auto;
   }

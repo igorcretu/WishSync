@@ -186,11 +186,14 @@ interface PartnerListProps {
   backLabel?: string;
   onBack?: () => void;
 }
+const VISIBLE_CATS = 8;
+
 export const PartnerList: React.FC<PartnerListProps> = ({ wishes, partner, me, onOpen, onReserve, backLabel, onBack }) => {
   const [cat, setCat] = React.useState<string>("All");
   const [pri, setPri] = React.useState<string>("All");
   const [search, setSearch] = React.useState<string>("");
   const [sortBy, setSortBy] = React.useState<'default' | 'price-asc' | 'price-desc'>('default');
+  const [showAllCats, setShowAllCats] = React.useState(false);
 
   const doSurprise = () => {
     const unreserved = wishes.filter(w => !w.reserved);
@@ -212,6 +215,7 @@ export const PartnerList: React.FC<PartnerListProps> = ({ wishes, partner, me, o
 
   const reservedCount = wishes.filter(w => !!w.reserved).length;
   const totalValue = wishes.reduce((sum, w) => sum + w.price, 0);
+  const visibleCats = showAllCats ? CATEGORIES : CATEGORIES.slice(0, VISIBLE_CATS);
 
   return (
     <>
@@ -226,45 +230,39 @@ export const PartnerList: React.FC<PartnerListProps> = ({ wishes, partner, me, o
         accent={partner.name + "."}
         subtitle={`${wishes.length} wishes · ${reservedCount} already claimed · $${totalValue.toLocaleString()} total`}
         actions={
-          <>
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <span style={{ position: 'absolute', left: 10, opacity: 0.4, pointerEvents: 'none', display: 'flex' }}><IconSearch size={14} /></span>
-              <input
-                className="input"
-                placeholder="Search…"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                style={{ paddingLeft: 30, width: 160, height: 36, fontSize: 13 }}
-              />
-            </div>
-            <select
-              className="input"
-              value={sortBy}
-              onChange={e => setSortBy(e.target.value as typeof sortBy)}
-              style={{ height: 36, fontSize: 13, width: 'auto', paddingRight: 28 }}
-            >
-              <option value="default">Sort: Default</option>
-              <option value="price-asc">Price: Low → High</option>
-              <option value="price-desc">Price: High → Low</option>
-            </select>
-            <button className="btn btn-primary" onClick={doSurprise}><IconSparkle size={15} /> Surprise mode</button>
-          </>
+          <button className="btn btn-primary" onClick={doSurprise}><IconSparkle size={15} /> Surprise mode</button>
         }
       />
 
-      <div style={{ background: "var(--paper)", borderRadius: "var(--radius-lg)", padding: "18px 22px", marginBottom: 28, display: "flex", alignItems: "center", gap: 14, boxShadow: "var(--shadow-sm)" }}>
-        <div style={{ width: 44, height: 44, borderRadius: 14, background: "var(--blush)", display: "grid", placeItems: "center", fontSize: 22 }}>🤫</div>
+      <div style={{ background: "var(--paper)", borderRadius: "var(--radius-lg)", padding: "18px 22px", marginBottom: 20, display: "flex", alignItems: "center", gap: 14, boxShadow: "var(--shadow-sm)" }}>
+        <div style={{ width: 44, height: 44, borderRadius: 14, background: "var(--blush)", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0 }}>🤫</div>
         <div style={{ flex: 1 }}>
           <div style={{ fontFamily: "var(--font-display)", fontSize: 17 }}>Secret reservations are live</div>
           <div style={{ fontSize: 13, color: "var(--ink-muted)" }}>Reserve any item — {partner.name} won't see it's taken. The rest of the gifting circle will.</div>
         </div>
       </div>
 
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+      <div className="filter-panel">
+        <div className="filter-search-row">
+          <div className="filter-search-wrap">
+            <span className="filter-search-icon"><IconSearch size={14} /></span>
+            <input className="input" placeholder="Search wishes…" value={search} onChange={e => setSearch(e.target.value)} />
+          </div>
+          <select className="input filter-sort" value={sortBy} onChange={e => setSortBy(e.target.value as typeof sortBy)}>
+            <option value="default">Sort: Default</option>
+            <option value="price-asc">Price: Low → High</option>
+            <option value="price-desc">Price: High → Low</option>
+          </select>
+        </div>
         <div className="chip-row">
-          {CATEGORIES.map(c => (
+          {visibleCats.map(c => (
             <button key={c} className={`chip ${cat === c ? "active" : ""}`} onClick={() => setCat(c)}>{c}</button>
           ))}
+          {CATEGORIES.length > VISIBLE_CATS && (
+            <button className="chip show-more-chip" onClick={() => setShowAllCats(p => !p)}>
+              {showAllCats ? '← Less' : `+${CATEGORIES.length - VISIBLE_CATS} more`}
+            </button>
+          )}
         </div>
         <div className="tabs">
           {["All", "Must have", "Would love", "Nice to have"].map(p => (
@@ -302,6 +300,7 @@ export const MyList: React.FC<MyListProps> = ({ wishes, me, onOpen, onAdd, partn
   const [pri, setPri] = React.useState<string>("All");
   const [search, setSearch] = React.useState<string>("");
   const [sortBy, setSortBy] = React.useState<'default' | 'price-asc' | 'price-desc'>('default');
+  const [showAllCats, setShowAllCats] = React.useState(false);
 
   const q = search.toLowerCase();
   let filtered = wishes.filter(w => {
@@ -315,6 +314,8 @@ export const MyList: React.FC<MyListProps> = ({ wishes, me, onOpen, onAdd, partn
   if (sortBy === 'price-asc') filtered = [...filtered].sort((a, b) => a.price - b.price);
   if (sortBy === 'price-desc') filtered = [...filtered].sort((a, b) => b.price - a.price);
 
+  const visibleCats = showAllCats ? CATEGORIES : CATEGORIES.slice(0, VISIBLE_CATS);
+
   return (
     <>
       <PageHeader
@@ -322,38 +323,30 @@ export const MyList: React.FC<MyListProps> = ({ wishes, me, onOpen, onAdd, partn
         title="Things I"
         accent="love."
         subtitle={`${wishes.length} wishes · shared with ${partnerName}${friendsCount > 0 ? ` + ${friendsCount} others` : ''}`}
-        actions={
-          <>
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <span style={{ position: 'absolute', left: 10, opacity: 0.4, pointerEvents: 'none', display: 'flex' }}><IconSearch size={14} /></span>
-              <input
-                className="input"
-                placeholder="Search…"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                style={{ paddingLeft: 30, width: 160, height: 36, fontSize: 13 }}
-              />
-            </div>
-            <select
-              className="input"
-              value={sortBy}
-              onChange={e => setSortBy(e.target.value as typeof sortBy)}
-              style={{ height: 36, fontSize: 13, width: 'auto', paddingRight: 28 }}
-            >
-              <option value="default">Sort: Newest</option>
-              <option value="price-asc">Price: Low → High</option>
-              <option value="price-desc">Price: High → Low</option>
-            </select>
-            <button className="btn btn-primary" onClick={onAdd}><IconPlus size={15} /> Add wish</button>
-          </>
-        }
+        actions={<button className="btn btn-primary" onClick={onAdd}><IconPlus size={15} /> Add wish</button>}
       />
 
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+      <div className="filter-panel">
+        <div className="filter-search-row">
+          <div className="filter-search-wrap">
+            <span className="filter-search-icon"><IconSearch size={14} /></span>
+            <input className="input" placeholder="Search your wishes…" value={search} onChange={e => setSearch(e.target.value)} />
+          </div>
+          <select className="input filter-sort" value={sortBy} onChange={e => setSortBy(e.target.value as typeof sortBy)}>
+            <option value="default">Sort: Newest</option>
+            <option value="price-asc">Price: Low → High</option>
+            <option value="price-desc">Price: High → Low</option>
+          </select>
+        </div>
         <div className="chip-row">
-          {CATEGORIES.map(c => (
+          {visibleCats.map(c => (
             <button key={c} className={`chip ${cat === c ? "active" : ""}`} onClick={() => setCat(c)}>{c}</button>
           ))}
+          {CATEGORIES.length > VISIBLE_CATS && (
+            <button className="chip show-more-chip" onClick={() => setShowAllCats(p => !p)}>
+              {showAllCats ? '← Less' : `+${CATEGORIES.length - VISIBLE_CATS} more`}
+            </button>
+          )}
         </div>
         <div className="tabs">
           {["All", "Must have", "Would love", "Nice to have"].map(p => (
@@ -1743,6 +1736,32 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ me, apiUser, onLogout,
   const [pwSaving, setPwSaving] = React.useState(false);
   const [pwDone, setPwDone] = React.useState(false);
 
+  const [editOpen, setEditOpen] = React.useState(false);
+  const [editName, setEditName] = React.useState(me.name);
+  const [editNickname, setEditNickname] = React.useState(me.nickname);
+  const [editBirthday, setEditBirthday] = React.useState(apiUser.birthday ?? '');
+  const [editError, setEditError] = React.useState('');
+  const [editSaving, setEditSaving] = React.useState(false);
+
+  const handleSaveDetails = async () => {
+    if (!editName.trim()) { setEditError('Name is required.'); return; }
+    if (!editNickname.trim()) { setEditError('Nickname is required.'); return; }
+    setEditSaving(true); setEditError('');
+    try {
+      const updated = await authApi.updateMe({
+        name: editName.trim(),
+        nickname: editNickname.trim(),
+        birthday: editBirthday || undefined,
+      });
+      onUpdateUser(updated);
+      setEditOpen(false);
+    } catch (e: any) {
+      setEditError(e.message || 'Could not save changes');
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [deletePw, setDeletePw] = React.useState('');
   const [deleteError, setDeleteError] = React.useState('');
@@ -1835,6 +1854,59 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ me, apiUser, onLogout,
             )}
           </div>
           <button className="btn btn-ghost btn-sm" onClick={onLogout} style={{ color: 'var(--ink-muted)' }}>Sign out</button>
+        </div>
+
+        <div className="card" style={{ padding: 24, marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: editOpen ? 16 : 0 }}>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: 22 }}>Details</div>
+            <button className="btn btn-ghost btn-sm" onClick={() => { setEditOpen(o => !o); setEditError(''); }}>
+              {editOpen ? 'Cancel' : 'Edit'}
+            </button>
+          </div>
+          {!editOpen ? (
+            <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <span style={{ color: 'var(--ink-muted)', fontSize: 13, width: 80 }}>Name</span>
+                <span style={{ fontWeight: 600 }}>{me.name}</span>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <span style={{ color: 'var(--ink-muted)', fontSize: 13, width: 80 }}>Nickname</span>
+                <span style={{ fontWeight: 600 }}>@{me.nickname.toLowerCase()}</span>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <span style={{ color: 'var(--ink-muted)', fontSize: 13, width: 80 }}>Email</span>
+                <span>{apiUser.email}</span>
+              </div>
+              {apiUser.birthday && (
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <span style={{ color: 'var(--ink-muted)', fontSize: 13, width: 80 }}>Birthday</span>
+                  <span>🎂 {apiUser.birthday}</span>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div>
+                <label className="label">Name</label>
+                <input className="input" value={editName} onChange={e => setEditName(e.target.value)} placeholder="Your name" />
+              </div>
+              <div>
+                <label className="label">Nickname</label>
+                <div style={{ position: 'relative' }}>
+                  <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-muted)' }}>@</span>
+                  <input className="input" style={{ paddingLeft: 24 }} value={editNickname} onChange={e => setEditNickname(e.target.value)} placeholder="nickname" />
+                </div>
+              </div>
+              <div>
+                <label className="label">Birthday (optional)</label>
+                <input className="input" value={editBirthday} onChange={e => setEditBirthday(e.target.value)} placeholder="e.g. Mar 02" />
+              </div>
+              {editError && <div style={{ color: '#C0392B', fontSize: 13 }}>{editError}</div>}
+              <button className="btn btn-primary" onClick={handleSaveDetails} disabled={editSaving}>
+                {editSaving ? 'Saving…' : 'Save changes'}
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="card" style={{ padding: 24, marginBottom: 20 }}>
