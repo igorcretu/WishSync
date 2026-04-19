@@ -32,6 +32,10 @@ export interface ApiUser {
   color: string;
   initial: string;
   birthday: string | null;
+  notifBirthdays: boolean;
+  notifPriceDrops: boolean;
+  notifNewWishes: boolean;
+  notifReactions: boolean;
 }
 
 export interface ApiWish {
@@ -150,6 +154,8 @@ export const circles = {
 
   createInvite: (circleId: string, email?: string) =>
     request<{ inviteUrl: string; expiresAt: string }>('POST', `/api/circles/${circleId}/invites`, email ? { email } : {}),
+
+  leave: (id: string) => request<void>('DELETE', `/api/circles/${id}`),
 };
 
 // ---- invites ----

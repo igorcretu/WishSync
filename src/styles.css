@@ -101,10 +101,14 @@ input, textarea, select { font-family: inherit; font-size: inherit; color: inher
   font-size: 15px;
   color: var(--ink-soft);
   text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
   transition: background 0.15s, color 0.15s;
 }
 .nav-item:hover { background: rgba(255,255,255,0.6); color: var(--ink); }
 .nav-item.active { background: var(--paper); color: var(--ink); box-shadow: var(--shadow-sm); }
+.nav-item.nav-cta { color: var(--ink-soft); border: 1.5px dashed var(--line); }
+.nav-item.nav-cta:hover { background: var(--paper); color: var(--ink); border-style: solid; }
 .nav-item .icon { width: 20px; height: 20px; flex-shrink: 0; }
 .nav-section {
   font-size: 11px;

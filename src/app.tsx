@@ -4,6 +4,7 @@ import { Sidebar, MobileNav } from './components';
 import {
   Dashboard, PartnerList, MyList, DetailView, OccasionsView,
   HistoryView, GroupsView, ProfileView, SecretOverlay, AddWishModal,
+  EmptyPartnerView, InviteAcceptView,
 } from './views';
 import { AuthViews } from './auth-views';
 import { useAuth } from './AuthContext';
@@ -78,13 +79,26 @@ const App: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
 
   if (authLoading) return <div className="auth-screen"><div style={{ fontSize: 24 }}>Loading…</div></div>;
+
+  // Handle invite links: /invite/:token
+  const inviteMatch = window.location.pathname.match(/^\/invite\/([^/]+)/);
+  if (inviteMatch) {
+    if (!user) return <AuthViews />;
+    const token = inviteMatch[1];
+    const done = () => {
+      window.history.replaceState(null, '', '/');
+      window.location.reload();
+    };
+    return <InviteAcceptView token={token} onDone={done} />;
+  }
+
   if (!user) return <AuthViews />;
 
   return <AppInner />;
 };
 
 const AppInner: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
 
   // ---- state ----
   const [view, setView] = React.useState<ViewId>(() => (localStorage.getItem('ws-view') as ViewId) || 'partner');
@@ -112,10 +126,10 @@ const AppInner: React.FC = () => {
   React.useEffect(() => {
     if (!user) return;
     Promise.all([
-      wishApi.list(),
-      circleApi.list(),
-      occasionApi.list(),
-      historyApi.list(),
+      wishApi.list().catch(() => [] as any[]),
+      circleApi.list().catch(() => [] as any[]),
+      occasionApi.list().catch(() => [] as any[]),
+      historyApi.list().catch(() => [] as any[]),
     ]).then(([myW, circleList, occ, hist]) => {
       setMyWishes(myW.map(w => apiWishToWish(w, user.id)));
       setMyCircles(circleList);
@@ -235,6 +249,17 @@ const AppInner: React.FC = () => {
     setSecretWish(w);
   };
 
+  // ---- delete wish ----
+  const deleteWish = async (id: string) => {
+    try {
+      await wishApi.remove(id);
+      setMyWishes(prev => prev.filter(w => w.id !== id));
+      setView('mine');
+    } catch {
+      showToast('Could not delete wish');
+    }
+  };
+
   // ---- add wish ----
   const addWish = async (w: Wish) => {
     try {
@@ -277,21 +302,22 @@ const AppInner: React.FC = () => {
   const renderView = () => {
     switch (view) {
       case 'dashboard':
-        return <Dashboard partnerWishes={partnerWishes} myWishes={myWishes} me={me} partner={effectivePartner} occasions={occasionList} onNav={setView} />;
+        return <Dashboard partnerWishes={partnerWishes} myWishes={myWishes} me={me} partner={effectivePartner} hasPartner={!!partner} occasions={occasionList} onNav={setView} />;
       case 'partner':
+        if (!partner) return <EmptyPartnerView onGoToGroups={() => setView('groups')} />;
         return <PartnerList wishes={partnerWishes} partner={effectivePartner} me={me} onOpen={w => openDetail(w, 'partner')} onReserve={handleReserveClick} />;
       case 'mine':
         return <MyList wishes={myWishes} me={me} onOpen={w => openDetail(w, 'mine')} onAdd={() => setShowAdd(true)} partnerName={effectivePartner.name} friendsCount={friends.length} />;
       case 'detail':
-        return detailWish && <DetailView wish={detailWish} mode={detailMode} me={me} partner={effectivePartner} friends={friends} onBack={() => setView(detailMode === 'partner' ? 'partner' : 'mine')} onReserve={handleReserveClick} />;
+        return detailWish && <DetailView wish={detailWish} mode={detailMode} me={me} partner={effectivePartner} friends={friends} onBack={() => setView(detailMode === 'partner' ? 'partner' : 'mine')} onReserve={handleReserveClick} onDelete={detailMode === 'mine' ? deleteWish : undefined} />;
       case 'occasions':
         return <OccasionsView occasions={occasionList} partner={effectivePartner} friends={friends} />;
       case 'history':
         return <HistoryView purchased={historyList} />;
       case 'groups':
-        return <GroupsView me={me} partner={effectivePartner} friends={friends} circles={myCircles} onCircleCreated={circle => setMyCircles(prev => [...prev, circle])} />;
+        return <GroupsView me={me} partner={effectivePartner} friends={friends} circles={myCircles} onCircleCreated={circle => setMyCircles(prev => [...prev, circle])} onCircleLeft={id => setMyCircles(prev => prev.filter(c => c.id !== id))} />;
       case 'profile':
-        return <ProfileView me={me} onLogout={logout} />;
+        return <ProfileView me={me} apiUser={user!} onLogout={logout} onUpdateUser={updateUser} />;
       default:
         return null;
     }
@@ -301,9 +327,9 @@ const AppInner: React.FC = () => {
 
   return (
     <div className="app">
-      <Sidebar currentView={view} onNav={setView} me={me} newCount={newCount} partnerNickname={effectivePartner.nickname} />
+      <Sidebar currentView={view} onNav={setView} me={me} newCount={newCount} partnerNickname={effectivePartner.nickname} hasPartner={!!partner} />
       <main className="main">{renderView()}</main>
-      <MobileNav currentView={view} onNav={setView} partnerNickname={effectivePartner.nickname} />
+      <MobileNav currentView={view} onNav={setView} partnerNickname={effectivePartner.nickname} hasPartner={!!partner} />
 
       {secretWish && (
         <SecretOverlay

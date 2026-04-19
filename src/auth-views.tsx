@@ -35,7 +35,10 @@ const LoginView: React.FC<{ onSwitch: () => void }> = ({ onSwitch }) => {
     <div className="auth-screen">
       <div className="auth-card">
         <div className="auth-logo">
-          <div className="logo-mark">w</div>
+          <svg width="40" height="40" viewBox="0 0 72 72">
+            <rect width="72" height="72" rx="18" fill="#2B2420"/>
+            <path d="M36 36 C 26 26, 18 34, 24 42 C 28 46, 36 50, 36 50 C 36 50, 44 46, 48 42 C 54 34, 46 26, 36 36 Z" fill="#F6B89A"/>
+          </svg>
           <span className="auth-brand">WishSync</span>
         </div>
         <h1 className="auth-title">Welcome back</h1>
@@ -115,7 +118,10 @@ const RegisterView: React.FC<{ onSwitch: () => void }> = ({ onSwitch }) => {
     <div className="auth-screen">
       <div className="auth-card">
         <div className="auth-logo">
-          <div className="logo-mark">w</div>
+          <svg width="40" height="40" viewBox="0 0 72 72">
+            <rect width="72" height="72" rx="18" fill="#2B2420"/>
+            <path d="M36 36 C 26 26, 18 34, 24 42 C 28 46, 36 50, 36 50 C 36 50, 44 46, 48 42 C 54 34, 46 26, 36 36 Z" fill="#F6B89A"/>
+          </svg>
           <span className="auth-brand">WishSync</span>
         </div>
         <h1 className="auth-title">Create your account</h1>

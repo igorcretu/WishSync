@@ -2,11 +2,11 @@
 
 import React from 'react';
 import type { Wish, Person, Occasion, HistoryItem, ViewId, Priority, OccasionTag } from './types';
-import { circles as circleApi, wishes as wishApi } from './api';
-import type { ApiCircle } from './api';
+import { circles as circleApi, wishes as wishApi, invites as invitesApi, auth as authApi } from './api';
+import type { ApiCircle, ApiUser } from './api';
 import { CATEGORIES, OCCASION_TAGS, PRIORITY_LABELS, PH } from './data';
 import {
-  IconLock, IconGift, IconSearch, IconSparkle, IconLink, IconPlus,
+  IconLock, IconGift, IconSearch, IconSparkle, IconPlus,
   IconArrowLeft, IconExternal, IconCheck, IconX,
 } from './icons';
 import { PageHeader, WishCard, Avatar, Placeholder } from './components';
@@ -38,6 +38,76 @@ export const SecretOverlay: React.FC<SecretOverlayProps> = ({ wish, partnerNickn
     </div>
   </div>
 );
+
+// ---------- Invite Accept ----------
+interface InviteAcceptViewProps {
+  token: string;
+  onDone: () => void;
+}
+export const InviteAcceptView: React.FC<InviteAcceptViewProps> = ({ token, onDone }) => {
+  const [state, setState] = React.useState<'loading' | 'preview' | 'accepting' | 'done' | 'error'>('loading');
+  const [info, setInfo] = React.useState<{ circleName: string; circleType: string; inviterName: string } | null>(null);
+  const [errorMsg, setErrorMsg] = React.useState('');
+
+  React.useEffect(() => {
+    invitesApi.preview(token)
+      .then(data => { setInfo(data); setState('preview'); })
+      .catch(err => { setErrorMsg(err.message || 'Invalid or expired invite'); setState('error'); });
+  }, [token]);
+
+  const accept = () => {
+    setState('accepting');
+    invitesApi.accept(token)
+      .then(() => setState('done'))
+      .catch(err => { setErrorMsg(err.message || 'Could not accept invite'); setState('error'); });
+  };
+
+  return (
+    <div className="auth-screen">
+      <div className="auth-card" style={{ textAlign: 'center' }}>
+        <div style={{ marginBottom: 20 }}>
+          <svg width="64" height="64" viewBox="0 0 72 72" style={{ margin: '0 auto' }}>
+            <rect width="72" height="72" rx="18" fill="#2B2420"/>
+            <path d="M36 36 C 26 26, 18 34, 24 42 C 28 46, 36 50, 36 50 C 36 50, 44 46, 48 42 C 54 34, 46 26, 36 36 Z" fill="#F6B89A"/>
+          </svg>
+        </div>
+        {state === 'loading' && <p style={{ color: 'var(--ink-muted)' }}>Loading invite…</p>}
+        {state === 'error' && (
+          <>
+            <h2 className="auth-title">Invite issue</h2>
+            <p className="auth-sub">{errorMsg}</p>
+            <button className="btn btn-ghost" onClick={onDone}>Go to app</button>
+          </>
+        )}
+        {(state === 'preview' || state === 'accepting') && info && (
+          <>
+            <h2 className="auth-title">You're invited!</h2>
+            <p className="auth-sub">
+              <strong>{info.inviterName}</strong> invited you to join<br />
+              <strong>"{info.circleName}"</strong> ({info.circleType === 'couple' ? 'Couple' : 'Friend group'})
+            </p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 20 }}>
+              <button className="btn btn-ghost" onClick={onDone}>Skip</button>
+              <button className="btn btn-primary btn-lg" onClick={accept} disabled={state === 'accepting'}>
+                {state === 'accepting' ? 'Joining…' : 'Accept & join 🎁'}
+              </button>
+            </div>
+          </>
+        )}
+        {state === 'done' && (
+          <>
+            <div style={{ fontSize: 56, marginBottom: 12 }}>🎉</div>
+            <h2 className="auth-title">You're in!</h2>
+            <p className="auth-sub">Welcome to the circle. Your wishlists are now synced.</p>
+            <button className="btn btn-primary btn-lg" onClick={onDone} style={{ marginTop: 16 }}>
+              Go to app →
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
 
 // ---------- Partner Wishlist (hero) ----------
 interface PartnerListProps {
@@ -138,7 +208,6 @@ export const MyList: React.FC<MyListProps> = ({ wishes, me, onOpen, onAdd, partn
         subtitle={`${wishes.length} wishes · shared with ${partnerName}${friendsCount > 0 ? ` + ${friendsCount} others` : ''}`}
         actions={
           <>
-            <button className="btn btn-ghost"><IconLink size={15} /> Quick add</button>
             <button className="btn btn-primary" onClick={onAdd}><IconPlus size={15} /> Add wish</button>
           </>
         }
@@ -181,8 +250,9 @@ interface DetailViewProps {
   friends: Person[];
   onBack: () => void;
   onReserve: (w: Wish) => void;
+  onDelete?: (id: string) => void;
 }
-export const DetailView: React.FC<DetailViewProps> = ({ wish, mode, me, partner, friends, onBack, onReserve }) => {
+export const DetailView: React.FC<DetailViewProps> = ({ wish, mode, me, partner, friends, onBack, onReserve, onDelete }) => {
   const priorityInfo = PRIORITY_LABELS[wish.priority];
   const reservedByMe = !!wish.reserved && wish.reserved.by === me.id;
   const reservedByOther = !!wish.reserved && wish.reserved.by !== me.id;
@@ -211,8 +281,11 @@ export const DetailView: React.FC<DetailViewProps> = ({ wish, mode, me, partner,
 
           <h1 className="detail-title">{wish.title}</h1>
           <div style={{ color: "var(--ink-muted)", display: "flex", alignItems: "center", gap: 6 }}>
-            from <strong style={{ color: "var(--ink)" }}>{wish.store}</strong>
-            <IconExternal size={13} />
+            from{' '}
+            {wish.storeUrl
+              ? <a href={wish.storeUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--ink)", fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}>{wish.store} <IconExternal size={13} /></a>
+              : <strong style={{ color: "var(--ink)" }}>{wish.store}</strong>
+            }
           </div>
 
           <div className="detail-price">
@@ -255,9 +328,11 @@ export const DetailView: React.FC<DetailViewProps> = ({ wish, mode, me, partner,
                     <IconGift size={16} /> {reservedByMe ? "Release reservation" : "Reserve secretly"}
                   </button>
                 )}
-                <button className="btn btn-ghost btn-lg">
-                  <IconExternal size={15} /> View at store
-                </button>
+                {wish.storeUrl && (
+                  <a className="btn btn-ghost btn-lg" href={wish.storeUrl} target="_blank" rel="noopener noreferrer">
+                    <IconExternal size={15} /> View at store
+                  </a>
+                )}
               </div>
             </>
           )}
@@ -270,9 +345,21 @@ export const DetailView: React.FC<DetailViewProps> = ({ wish, mode, me, partner,
                 <button className="reaction">👀 {wish.reactions.eyes}</button>
                 <button className="reaction">🎁 {wish.reactions.gift}</button>
               </div>
-              <div style={{ display: "flex", gap: 10 }}>
-                <button className="btn btn-dark btn-lg" style={{ flex: 1 }}>Edit wish</button>
-                <button className="btn btn-ghost btn-lg"><IconExternal size={15} /> Store</button>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                {wish.storeUrl && (
+                  <a className="btn btn-ghost btn-lg" href={wish.storeUrl} target="_blank" rel="noopener noreferrer">
+                    <IconExternal size={15} /> View at store
+                  </a>
+                )}
+                {onDelete && (
+                  <button
+                    className="btn btn-ghost btn-lg"
+                    style={{ color: '#C0392B' }}
+                    onClick={() => { if (window.confirm('Remove this wish from your list?')) onDelete(wish.id); }}
+                  >
+                    Delete wish
+                  </button>
+                )}
               </div>
             </>
           )}
@@ -288,31 +375,32 @@ interface DashboardProps {
   myWishes: Wish[];
   me: Person;
   partner: Person;
+  hasPartner: boolean;
   occasions: Occasion[];
   onNav: (v: ViewId) => void;
 }
-export const Dashboard: React.FC<DashboardProps> = ({ partnerWishes, myWishes, me, partner, occasions, onNav }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ partnerWishes, myWishes, me, partner, hasPartner, occasions, onNav }) => {
   const nextOccasion = occasions[0];
   return (
     <>
       <PageHeader
-        eyebrow={`Good afternoon, ${me.name}`}
-        title={`You & ${partner.name},`}
-        accent="synced."
-        subtitle="Your shared gifting world at a glance."
+        eyebrow={`Good ${new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'}, ${me.name}`}
+        title={hasPartner ? `You & ${partner.name},` : `Hey ${me.name},`}
+        accent={hasPartner ? "synced." : "welcome."}
+        subtitle={hasPartner ? "Your shared gifting world at a glance." : "Invite your partner to start syncing wishlists."}
       />
 
       <div className="dash-grid">
         <div className="dash-tile sage" onClick={() => onNav("partner")} style={{ cursor: "pointer" }}>
           <div className="dash-label">{partner.name}'s wishlist</div>
           <div className="dash-value">{partnerWishes.length}</div>
-          <div className="dash-sub">3 added this week</div>
+          <div className="dash-sub">{partnerWishes.filter(w => !w.reserved).length} unreserved</div>
           <div className="dash-deco">🎁</div>
         </div>
         <div className="dash-tile blush" onClick={() => onNav("mine")} style={{ cursor: "pointer" }}>
           <div className="dash-label">Your wishlist</div>
           <div className="dash-value">{myWishes.length}</div>
-          <div className="dash-sub">15 total reactions</div>
+          <div className="dash-sub">{myWishes.reduce((s, w) => s + w.reactions.heart + w.reactions.eyes + w.reactions.gift, 0)} reactions</div>
           <div className="dash-deco">♥</div>
         </div>
         <div className="dash-tile butter" onClick={() => onNav("occasions")} style={{ cursor: "pointer" }}>
@@ -330,13 +418,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ partnerWishes, myWishes, m
           )}
           <div className="dash-deco">🎂</div>
         </div>
-        <div className="dash-tile ink">
-          <div className="dash-label" style={{ opacity: 0.7 }}>Surprise budget</div>
-          <div className="dash-value">$240</div>
-          <div className="dash-sub" style={{ opacity: 0.7 }}>of $400 this month</div>
-          <div style={{ marginTop: 12, height: 6, background: "rgba(255,255,255,0.15)", borderRadius: 3, overflow: "hidden" }}>
-            <div style={{ width: "60%", height: "100%", background: "var(--peach)" }} />
-          </div>
+        <div className="dash-tile ink" onClick={() => onNav("groups")} style={{ cursor: "pointer" }}>
+          <div className="dash-label" style={{ opacity: 0.7 }}>Reserved gifts</div>
+          <div className="dash-value">{partnerWishes.filter(w => !!w.reserved).length}</div>
+          <div className="dash-sub" style={{ opacity: 0.7 }}>of {partnerWishes.length} on {partner.name}'s list</div>
+          <div className="dash-deco">🤫</div>
         </div>
       </div>
 
@@ -403,14 +489,17 @@ export const AddWishModal: React.FC<AddWishModalProps> = ({ onClose, onAdd }) =>
     setLoading(true);
     setScrapeError("");
     try {
-      const data = await wishApi.scrape(url.trim());
+      const data = await wishApi.scrape(url.trim()) as any;
       if (data.title) setTitle(data.title);
       if (data.store) setStore(data.store);
       if (data.price) setPrice(String(data.price));
       if (data.image) setScrapeImageUrl(data.image);
+      if (data._note === 'amazon') {
+        setScrapeError("Amazon doesn't allow scraping — title filled from URL. Please enter the price manually.");
+      }
       setStep("details");
     } catch {
-      setScrapeError("Couldn't read that page — fill in manually.");
+      setScrapeError("Couldn't read that page — fill in the details manually.");
       setStep("details");
     } finally {
       setLoading(false);
@@ -418,14 +507,18 @@ export const AddWishModal: React.FC<AddWishModalProps> = ({ onClose, onAdd }) =>
   };
 
   const submit = () => {
+    if (!title.trim()) { setScrapeError("Please enter a title."); return; }
+    if (price === '' || isNaN(Number(price)) || Number(price) < 0) { setScrapeError("Please enter a valid price (0 or more)."); return; }
     const w: Wish = {
       id: "new-" + Date.now(),
       title: title || "Untitled wish",
-      image: PH("#F6B89A", title.toLowerCase().slice(0, 16) || "new item"),
+      image: scrapeImageUrl
+        ? { tint: "#F6B89A", label: scrapeImageUrl }
+        : PH("#F6B89A", title.toLowerCase().slice(0, 16) || "new item"),
       price: Number(price) || 0,
       currency: "$",
       store: store || "—",
-      storeUrl: url || undefined,
+      storeUrl: url.startsWith('http') ? url : undefined,
       category,
       priority,
       occasion,
@@ -593,10 +686,9 @@ export const OccasionsView: React.FC<OccasionsViewProps> = ({ occasions, partner
           <div style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 10 }}>
             <div className="members">
               <Avatar person={partner} size="sm" />
-              <Avatar person={friends[0]} size="sm" />
-              <Avatar person={friends[1]} size="sm" />
+              {friends.slice(0, 2).map(f => <Avatar key={f.id} person={f} size="sm" />)}
             </div>
-            <span style={{ fontSize: 12, fontWeight: 700 }}>3 gifters</span>
+            <span style={{ fontSize: 12, fontWeight: 700 }}>{1 + friends.slice(0, 2).length} gifters</span>
           </div>
         </div>
       ))}
@@ -642,29 +734,61 @@ interface GroupsViewProps {
   friends: Person[];
   circles: ApiCircle[];
   onCircleCreated: (c: ApiCircle) => void;
+  onCircleLeft: (id: string) => void;
 }
-export const GroupsView: React.FC<GroupsViewProps> = ({ circles, onCircleCreated }) => {
+export const GroupsView: React.FC<GroupsViewProps> = ({ me, circles, onCircleCreated, onCircleLeft }) => {
   const [creating, setCreating] = React.useState(false);
   const [newName, setNewName] = React.useState('');
   const [newType, setNewType] = React.useState<'couple' | 'friends'>('friends');
-  const [inviteUrl, setInviteUrl] = React.useState('');
+  const [creatingLoading, setCreatingLoading] = React.useState(false);
+  const [invitePanel, setInvitePanel] = React.useState<{ url: string; circleId: string; circleName: string } | null>(null);
+  const [inviteEmail, setInviteEmail] = React.useState('');
+  const [sendingEmail, setSendingEmail] = React.useState(false);
+  const [emailSent, setEmailSent] = React.useState(false);
+  const [copyDone, setCopyDone] = React.useState(false);
 
-  const createCircle = async () => {
+  const openInvitePanel = async (circleId: string, circleName: string) => {
     try {
-      const circle = await circleApi.create(newName, newType);
-      onCircleCreated(circle);
-      // immediately generate invite link
-      const invite = await circleApi.createInvite(circle.id);
-      setInviteUrl(invite.inviteUrl);
-      setCreating(false);
-      setNewName('');
+      const inv = await circleApi.createInvite(circleId);
+      setInvitePanel({ url: inv.inviteUrl, circleId, circleName });
+      setInviteEmail('');
+      setEmailSent(false);
+      setCopyDone(false);
     } catch {}
   };
 
-  const copyInvite = (circleId: string) => async () => {
-    const invite = await circleApi.createInvite(circleId);
-    await navigator.clipboard.writeText(invite.inviteUrl).catch(() => {});
-    setInviteUrl(invite.inviteUrl);
+  const createCircle = async () => {
+    if (!newName.trim()) return;
+    setCreatingLoading(true);
+    try {
+      const circle = await circleApi.create(newName, newType);
+      onCircleCreated(circle);
+      setCreating(false);
+      setNewName('');
+      await openInvitePanel(circle.id, circle.name);
+    } catch {} finally {
+      setCreatingLoading(false);
+    }
+  };
+
+  const sendEmailInvite = async () => {
+    if (!invitePanel || !inviteEmail.trim()) return;
+    setSendingEmail(true);
+    try {
+      await circleApi.createInvite(invitePanel.circleId, inviteEmail.trim());
+      setEmailSent(true);
+      setInviteEmail('');
+    } catch {} finally {
+      setSendingEmail(false);
+    }
+  };
+
+  const leaveCircle = async (circleId: string, circleName: string) => {
+    if (!window.confirm(`Leave "${circleName}"? If you created it, the circle will be deleted for everyone.`)) return;
+    try {
+      await circleApi.leave(circleId);
+      onCircleLeft(circleId);
+    } catch {}
   };
 
   const pillColors: Record<string, string> = { couple: 'var(--blush)', friends: 'var(--butter)' };
@@ -680,17 +804,6 @@ export const GroupsView: React.FC<GroupsViewProps> = ({ circles, onCircleCreated
         actions={<button className="btn btn-primary" onClick={() => setCreating(true)}><IconPlus size={15} /> New circle</button>}
       />
 
-      {inviteUrl && (
-        <div style={{ background: 'var(--paper)', borderRadius: 'var(--radius-lg)', padding: '16px 20px', marginBottom: 24, display: 'flex', gap: 12, alignItems: 'center' }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 700, marginBottom: 4 }}>Invite link ready</div>
-            <div style={{ fontSize: 13, color: 'var(--ink-muted)', wordBreak: 'break-all' }}>{inviteUrl}</div>
-          </div>
-          <button className="btn btn-ghost btn-sm" onClick={() => { navigator.clipboard.writeText(inviteUrl).catch(() => {}); }}>Copy</button>
-          <button className="btn btn-ghost btn-sm" onClick={() => setInviteUrl('')}>✕</button>
-        </div>
-      )}
-
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 18 }}>
         {circles.map(c => (
           <div key={c.id} className="card" style={{ padding: 24 }}>
@@ -702,7 +815,10 @@ export const GroupsView: React.FC<GroupsViewProps> = ({ circles, onCircleCreated
                 <div key={m.userId} className="avatar sm" style={{ background: m.user.color }}>{m.user.initial}</div>
               ))}
             </div>
-            <button className="btn btn-ghost btn-sm" onClick={copyInvite(c.id)}>Copy invite link</button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="btn btn-ghost btn-sm" onClick={() => openInvitePanel(c.id, c.name)}>Invite someone</button>
+              <button className="btn btn-ghost btn-sm" style={{ color: '#C0392B' }} onClick={() => leaveCircle(c.id, c.name)}>Leave</button>
+            </div>
           </div>
         ))}
 
@@ -724,7 +840,7 @@ export const GroupsView: React.FC<GroupsViewProps> = ({ circles, onCircleCreated
             <h2 className="modal-title">New circle</h2>
             <div className="field" style={{ marginBottom: 14 }}>
               <label className="label">Name</label>
-              <input className="input" placeholder="e.g. Nora & Theo" value={newName} onChange={e => setNewName(e.target.value)} />
+              <input className="input" placeholder="e.g. Us two" value={newName} onChange={e => setNewName(e.target.value)} onKeyDown={e => e.key === 'Enter' && createCircle()} />
             </div>
             <div className="field" style={{ marginBottom: 20 }}>
               <label className="label">Type</label>
@@ -738,7 +854,75 @@ export const GroupsView: React.FC<GroupsViewProps> = ({ circles, onCircleCreated
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button className="btn btn-ghost" onClick={() => setCreating(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={createCircle} disabled={!newName.trim()}>Create & get invite link</button>
+              <button className="btn btn-primary" onClick={createCircle} disabled={!newName.trim() || creatingLoading}>
+                {creatingLoading ? 'Creating…' : 'Create & invite'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {invitePanel && (
+        <div className="modal-backdrop" onClick={() => setInvitePanel(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 460 }}>
+            <h2 className="modal-title">Invite to {invitePanel.circleName}</h2>
+
+            <div style={{ marginBottom: 20 }}>
+              <label className="label">Share this link <span style={{ fontWeight: 400, color: 'var(--ink-muted)' }}>— valid 7 days</span></label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  className="input"
+                  readOnly
+                  value={invitePanel.url}
+                  style={{ flex: 1, fontSize: 12, cursor: 'text' }}
+                  onFocus={e => e.currentTarget.select()}
+                />
+                <button
+                  className="btn btn-ghost btn-sm"
+                  style={{ flexShrink: 0 }}
+                  onClick={() => { navigator.clipboard.writeText(invitePanel.url).catch(() => {}); setCopyDone(true); setTimeout(() => setCopyDone(false), 2000); }}
+                >
+                  {copyDone ? 'Copied!' : 'Copy'}
+                </button>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+              <div style={{ flex: 1, height: 1, background: 'var(--line)' }} />
+              <span style={{ fontSize: 11, color: 'var(--ink-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>or send by email</span>
+              <div style={{ flex: 1, height: 1, background: 'var(--line)' }} />
+            </div>
+
+            <div style={{ marginBottom: 20 }}>
+              <label className="label">Their email address</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  className="input"
+                  type="email"
+                  placeholder="friend@example.com"
+                  value={inviteEmail}
+                  onChange={e => { setInviteEmail(e.target.value); setEmailSent(false); }}
+                  onKeyDown={e => e.key === 'Enter' && sendEmailInvite()}
+                  style={{ flex: 1 }}
+                />
+                <button
+                  className="btn btn-primary btn-sm"
+                  style={{ flexShrink: 0 }}
+                  onClick={sendEmailInvite}
+                  disabled={sendingEmail || !inviteEmail.trim()}
+                >
+                  {sendingEmail ? 'Sending…' : 'Send invite'}
+                </button>
+              </div>
+              {emailSent && (
+                <div style={{ fontSize: 13, color: 'var(--ink-muted)', marginTop: 8 }}>
+                  ✓ Invite sent! Enter another address to invite more people.
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button className="btn btn-ghost" onClick={() => setInvitePanel(null)}>Done</button>
             </div>
           </div>
         </div>
@@ -747,36 +931,103 @@ export const GroupsView: React.FC<GroupsViewProps> = ({ circles, onCircleCreated
   );
 };
 
-// ---------- Profile ----------
-interface ProfileViewProps { me: Person; onLogout: () => void; }
-export const ProfileView: React.FC<ProfileViewProps> = ({ me, onLogout }) => (
+// ---------- Empty Partner (no couple circle yet) ----------
+interface EmptyPartnerViewProps {
+  onGoToGroups: () => void;
+}
+export const EmptyPartnerView: React.FC<EmptyPartnerViewProps> = ({ onGoToGroups }) => (
   <>
-    <PageHeader eyebrow="You" title="Your profile." subtitle="How you show up in the gifting world." />
-    <div style={{ maxWidth: 600 }}>
-      <div className="card" style={{ padding: 28, display: "flex", alignItems: "center", gap: 20, marginBottom: 20 }}>
-        <Avatar person={me} size="lg" />
-        <div style={{ flex: 1 }}>
-          <div style={{ fontFamily: "var(--font-display)", fontSize: 28 }}>{me.name}</div>
-          <div style={{ color: "var(--ink-muted)" }}>@{me.nickname.toLowerCase()} · 🎂 {me.birthday}</div>
-        </div>
-        <button className="btn btn-ghost btn-sm" onClick={onLogout} style={{ color: 'var(--ink-muted)' }}>Sign out</button>
-      </div>
-      <div className="card" style={{ padding: 24 }}>
-        <div style={{ fontFamily: "var(--font-display)", fontSize: 22, marginBottom: 14 }}>Notifications</div>
-        {[
-          ["Birthdays approaching", true],
-          ["Price drops on my wishes", true],
-          ["Someone added to their list", false],
-          ["Reaction to my wishes", true],
-        ].map(([label, on], i) => (
-          <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 0", borderBottom: i < 3 ? "1px dotted var(--line)" : "none" }}>
-            <span>{label}</span>
-            <div style={{ width: 40, height: 22, background: on ? "var(--sage-deep)" : "var(--line)", borderRadius: 999, position: "relative", transition: "background 0.2s" }}>
-              <div style={{ position: "absolute", top: 2, left: on ? 20 : 2, width: 18, height: 18, background: "white", borderRadius: "50%", transition: "left 0.2s" }} />
-            </div>
-          </div>
-        ))}
-      </div>
+    <PageHeader
+      eyebrow="Partner list"
+      title="Sync with"
+      accent="someone special."
+      subtitle="Create a couple circle and invite your partner — their wishes will appear here."
+    />
+    <div style={{ maxWidth: 480, margin: '40px auto 0', textAlign: 'center' }}>
+      <div style={{ fontSize: 72, marginBottom: 20 }}>💝</div>
+      <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 32, marginBottom: 12 }}>No partner connected yet</h2>
+      <p style={{ color: 'var(--ink-muted)', fontSize: 16, lineHeight: 1.6, marginBottom: 28 }}>
+        Create a couple circle, copy the invite link, and send it to your partner.
+        Once they join, their wishlist will show up here — and yours will show up for them.
+      </p>
+      <button className="btn btn-primary btn-lg" onClick={onGoToGroups}>
+        Create a couple circle →
+      </button>
     </div>
   </>
 );
+
+// ---------- Profile ----------
+interface ProfileViewProps {
+  me: Person;
+  apiUser: ApiUser;
+  onLogout: () => void;
+  onUpdateUser: (u: ApiUser) => void;
+}
+export const ProfileView: React.FC<ProfileViewProps> = ({ me, apiUser, onLogout, onUpdateUser }) => {
+  const [notifs, setNotifs] = React.useState({
+    notifBirthdays: apiUser.notifBirthdays,
+    notifPriceDrops: apiUser.notifPriceDrops,
+    notifNewWishes: apiUser.notifNewWishes,
+    notifReactions: apiUser.notifReactions,
+  });
+  const [saving, setSaving] = React.useState(false);
+
+  const toggle = async (key: keyof typeof notifs) => {
+    const next = { ...notifs, [key]: !notifs[key] };
+    setNotifs(next);
+    setSaving(true);
+    try {
+      const updated = await authApi.updateMe({ [key]: next[key] });
+      onUpdateUser(updated);
+    } catch {} finally {
+      setSaving(false);
+    }
+  };
+
+  const notifRows: { key: keyof typeof notifs; label: string; desc: string }[] = [
+    { key: 'notifBirthdays', label: 'Birthdays approaching', desc: 'Reminder before important dates' },
+    { key: 'notifPriceDrops', label: 'Price drops on my wishes', desc: 'Alert me when prices go down' },
+    { key: 'notifNewWishes', label: 'Someone added to their list', desc: 'Email when circle members add wishes' },
+    { key: 'notifReactions', label: 'Reactions to my wishes', desc: 'Email when someone reacts to your list' },
+  ];
+
+  return (
+    <>
+      <PageHeader eyebrow="You" title="Your profile." subtitle="How you show up in the gifting world." />
+      <div style={{ maxWidth: 600 }}>
+        <div className="card" style={{ padding: 28, display: "flex", alignItems: "center", gap: 20, marginBottom: 20 }}>
+          <Avatar person={me} size="lg" />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: 28 }}>{me.name}</div>
+            <div style={{ color: "var(--ink-muted)" }}>@{me.nickname.toLowerCase()} · 🎂 {me.birthday}</div>
+            <div style={{ fontSize: 13, color: "var(--ink-muted)" }}>{apiUser.email}</div>
+          </div>
+          <button className="btn btn-ghost btn-sm" onClick={onLogout} style={{ color: 'var(--ink-muted)' }}>Sign out</button>
+        </div>
+        <div className="card" style={{ padding: 24 }}>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 22, marginBottom: 4 }}>Notifications</div>
+          <div style={{ fontSize: 13, color: 'var(--ink-muted)', marginBottom: 16 }}>
+            Emails go to <strong>{apiUser.email}</strong>{saving && ' · saving…'}
+          </div>
+          {notifRows.map(({ key, label, desc }, i) => (
+            <div key={key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, padding: "12px 0", borderBottom: i < notifRows.length - 1 ? "1px dotted var(--line)" : "none" }}>
+              <div>
+                <div style={{ fontWeight: 600 }}>{label}</div>
+                <div style={{ fontSize: 12, color: 'var(--ink-muted)' }}>{desc}</div>
+              </div>
+              <button
+                onClick={() => toggle(key)}
+                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', flexShrink: 0 }}
+              >
+                <div style={{ width: 40, height: 22, background: notifs[key] ? "var(--primary-deep)" : "var(--line)", borderRadius: 999, position: "relative", transition: "background 0.2s" }}>
+                  <div style={{ position: "absolute", top: 2, left: notifs[key] ? 20 : 2, width: 18, height: 18, background: "white", borderRadius: "50%", transition: "left 0.2s", boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                </div>
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+};

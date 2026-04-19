@@ -6,18 +6,23 @@ import { PRIORITY_LABELS } from './data';
 import type { IconProps } from './icons';
 import {
   IconHome, IconHeart, IconGift, IconUsers, IconCal, IconClock,
-  IconUser, IconBell, IconLock,
+  IconUser, IconLock,
 } from './icons';
 
 interface PlaceholderProps {
   tint?: string;
   label?: string;
 }
-export const Placeholder: React.FC<PlaceholderProps> = ({ tint = "#F6B89A", label = "product" }) => (
-  <div className="ph" style={{ background: tint }}>
-    <span className="ph-label">{label}</span>
-  </div>
-);
+export const Placeholder: React.FC<PlaceholderProps> = ({ tint = "#F6B89A", label = "product" }) => {
+  if (label?.startsWith('http')) {
+    return <img src={label} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />;
+  }
+  return (
+    <div className="ph" style={{ background: tint }}>
+      <span className="ph-label">{label}</span>
+    </div>
+  );
+};
 
 interface AvatarProps {
   person: Person;
@@ -38,11 +43,12 @@ interface SidebarProps {
   me: Person;
   newCount: number;
   partnerNickname?: string;
+  hasPartner?: boolean;
 }
-export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNav, me, newCount, partnerNickname = "Partner" }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNav, me, newCount, partnerNickname = "Partner", hasPartner = false }) => {
   const items: { id: ViewId; label: string; icon: React.FC<IconProps> }[] = [
     { id: "dashboard", label: "Home", icon: IconHome },
-    { id: "partner", label: `${partnerNickname}'s list`, icon: IconHeart },
+    { id: "partner", label: hasPartner ? `${partnerNickname}'s list` : "Find your +1", icon: IconHeart },
     { id: "mine", label: "My list", icon: IconGift },
     { id: "groups", label: "Groups", icon: IconUsers },
     { id: "occasions", label: "Occasions", icon: IconCal },
@@ -51,22 +57,26 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNav, me, newCou
   return (
     <aside className="sidebar">
       <div className="logo">
-        <div className="logo-mark">w</div>
+        <svg width="34" height="34" viewBox="0 0 64 64" style={{ flexShrink: 0 }}>
+          <rect width="64" height="64" rx="14" fill="var(--primary)"/>
+          <path d="M32 32 C 22 22, 14 30, 20 38 C 24 42, 32 46, 32 46 C 32 46, 40 42, 44 38 C 50 30, 42 22, 32 32 Z" fill="#2B2420"/>
+        </svg>
         <span>WishSync</span>
       </div>
 
       <div className="nav">
         {items.map(it => {
           const I = it.icon;
+          const isInviteCta = it.id === "partner" && !hasPartner;
           return (
             <button
               key={it.id}
-              className={`nav-item ${currentView === it.id ? "active" : ""}`}
+              className={`nav-item ${currentView === it.id ? "active" : ""} ${isInviteCta ? "nav-cta" : ""}`}
               onClick={() => onNav(it.id)}
             >
               <I size={18} />
               {it.label}
-              {it.id === "partner" && newCount > 0 && (
+              {it.id === "partner" && hasPartner && newCount > 0 && (
                 <span style={{ marginLeft: "auto", fontSize: 11, background: "var(--blush)", padding: "2px 8px", borderRadius: 999, fontWeight: 800 }}>
                   {newCount} new
                 </span>
@@ -89,11 +99,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNav, me, newCou
         <Avatar person={me} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="name">{me.nickname}</div>
-          <div className="sub">🎂 {me.birthday}</div>
+          <div className="sub">🎂 {me.birthday || '—'}</div>
         </div>
-        <button className="icon-btn" style={{ width: 32, height: 32 }} title="Notifications">
-          <IconBell size={15} />
-        </button>
       </div>
     </aside>
   );
@@ -103,11 +110,12 @@ interface MobileNavProps {
   currentView: ViewId;
   onNav: (v: ViewId) => void;
   partnerNickname?: string;
+  hasPartner?: boolean;
 }
-export const MobileNav: React.FC<MobileNavProps> = ({ currentView, onNav, partnerNickname = 'Partner' }) => {
+export const MobileNav: React.FC<MobileNavProps> = ({ currentView, onNav, partnerNickname = 'Partner', hasPartner = false }) => {
   const items: { id: ViewId; icon: React.FC<IconProps>; label: string }[] = [
     { id: 'dashboard', icon: IconHome, label: 'Home' },
-    { id: 'partner', icon: IconHeart, label: partnerNickname },
+    { id: 'partner', icon: IconHeart, label: hasPartner ? partnerNickname : '+1' },
     { id: 'mine', icon: IconGift, label: 'My list' },
     { id: 'occasions', icon: IconCal, label: 'Occasions' },
     { id: 'profile', icon: IconUser, label: 'Profile' },
