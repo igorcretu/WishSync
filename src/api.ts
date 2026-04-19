@@ -178,7 +178,7 @@ export const invites = {
 export const occasions = {
   list: () => request<ApiOccasion[]>('GET', '/api/occasions'),
 
-  create: (data: Omit<ApiOccasion, 'id'>) =>
+  create: (data: Omit<ApiOccasion, 'id' | 'personId'> & { personId?: string | null }) =>
     request<ApiOccasion>('POST', '/api/occasions', data),
 
   update: (id: string, data: Partial<Omit<ApiOccasion, 'id'>>) =>

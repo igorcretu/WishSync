@@ -163,10 +163,10 @@ export const MY_WISHES: Wish[] = [
 ];
 
 export const OCCASIONS: Occasion[] = [
-  { id: "o1", title: "Theo's Birthday", date: "Mar 02", day: "02", month: "MAR", daysAway: 12, person: "partner", color: "sage" },
-  { id: "o2", title: "Anniversary", date: "May 18", day: "18", month: "MAY", daysAway: 89, person: "both", color: "blush" },
-  { id: "o3", title: "Nora's Birthday", date: "Jun 14", day: "14", month: "JUN", daysAway: 116, person: "me", color: "butter" },
-  { id: "o4", title: "Mika's Birthday", date: "Jul 28", day: "28", month: "JUL", daysAway: 160, person: "mika", color: "peach" },
+  { id: "o1", circleId: '', title: "Theo's Birthday", date: "Mar 02", day: "02", month: "MAR", daysAway: 12, person: "partner", color: "sage" },
+  { id: "o2", circleId: '', title: "Anniversary", date: "May 18", day: "18", month: "MAY", daysAway: 89, person: "both", color: "blush" },
+  { id: "o3", circleId: '', title: "Nora's Birthday", date: "Jun 14", day: "14", month: "JUN", daysAway: 116, person: "me", color: "butter" },
+  { id: "o4", circleId: '', title: "Mika's Birthday", date: "Jul 28", day: "28", month: "JUL", daysAway: 160, person: "mika", color: "peach" },
 ];
 
 export const PURCHASED: HistoryItem[] = [

@@ -1293,11 +1293,6 @@ export const GroupsView: React.FC<GroupsViewProps> = ({ circles, myId, onCircleC
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 18 }}>
         {circles.map(c => {
-          const isCreator = c.members.some(m => m.userId === myId) && c.members[0]?.userId === myId || true;
-          const amCreator = c.members.length > 0;
-          // Creator is whoever created it — we detect by checking if it's only us or by order (server puts creator first)
-          // We don't have createdById on the frontend, so we allow rename/remove only if circle has >1 members (shows we're likely creator)
-          const otherMembers = c.members.filter(m => m.userId !== myId);
           return (
             <div key={c.id} className="card" style={{ padding: 24 }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
