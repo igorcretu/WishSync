@@ -176,7 +176,15 @@ export const PURCHASED: HistoryItem[] = [
   { id: "h4", title: "Linen Bedding", for: "Nora", by: "Juno", date: "Jun 14, 2025", price: 210, image: PH("#BED6B0", "bedding set") },
 ];
 
-export const CATEGORIES: string[] = ["All", "Kitchen", "Clothing", "Beauty", "Stationery", "Accessories", "Footwear", "Bags"];
+export const CATEGORIES: string[] = [
+  "All",
+  "Clothing", "Footwear", "Bags", "Accessories", "Jewellery", "Watches",
+  "Beauty", "Skincare", "Fragrance",
+  "Kitchen", "Home", "Garden",
+  "Tech", "Gaming", "Books",
+  "Sports", "Travel", "Food & Drink",
+  "Experiences", "Other",
+];
 export const OCCASION_TAGS: OccasionTag[] = ["Birthday", "Christmas", "Anniversary", "Valentine's", "Just because"];
 export const PRIORITY_LABELS: Record<Priority, PriorityInfo> = {
   must: { label: "Must have", pill: "must" },

@@ -741,6 +741,7 @@ export const AddWishModal: React.FC<AddWishModalProps> = ({ onClose, onAdd }) =>
   const [scrapeImageUrl, setScrapeImageUrl] = React.useState<string>("");
   const [title, setTitle] = React.useState<string>("");
   const [price, setPrice] = React.useState<string>("");
+  const [currency, setCurrency] = React.useState<string>("$");
   const [store, setStore] = React.useState<string>("");
   const [category, setCategory] = React.useState<string>("Kitchen");
   const [priority, setPriority] = React.useState<Priority>("love");
@@ -752,10 +753,11 @@ export const AddWishModal: React.FC<AddWishModalProps> = ({ onClose, onAdd }) =>
     setLoading(true);
     setScrapeError("");
     try {
-      const data = await wishApi.scrape(url.trim()) as any;
+      const data = await wishApi.scrape(url.trim());
       if (data.title) setTitle(data.title);
       if (data.store) setStore(data.store);
       if (data.price) setPrice(String(data.price));
+      if (data.currency) setCurrency(data.currency);
       if (data.image) setScrapeImageUrl(data.image);
       if (data._note === 'amazon') {
         setScrapeError("Amazon doesn't allow scraping — title filled from URL. Please enter the price manually.");
@@ -779,7 +781,7 @@ export const AddWishModal: React.FC<AddWishModalProps> = ({ onClose, onAdd }) =>
         ? { tint: "#F6B89A", label: scrapeImageUrl }
         : PH("#F6B89A", title.toLowerCase().slice(0, 16) || "new item"),
       price: Number(price) || 0,
-      currency: "$",
+      currency,
       store: store || "—",
       storeUrl: url.startsWith('http') ? url : undefined,
       category,
@@ -850,14 +852,33 @@ export const AddWishModal: React.FC<AddWishModalProps> = ({ onClose, onAdd }) =>
             <div style={{ display: "flex", gap: 14, marginBottom: 14 }}>
               <div style={{ width: 96, height: 96, borderRadius: 14, overflow: "hidden", flexShrink: 0, background: "var(--cream-2)" }}>
                 {scrapeImageUrl
-                  ? <img src={scrapeImageUrl} alt="preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  : <Placeholder tint="#F6B89A" label="preview" />
+                  ? <img
+                      src={scrapeImageUrl}
+                      alt="preview"
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; (e.currentTarget.parentElement as HTMLElement).style.display = 'grid'; (e.currentTarget.parentElement as HTMLElement).style.placeItems = 'center'; (e.currentTarget.parentElement as HTMLElement).innerHTML = `<div style="font-size:32px;opacity:0.4">${(store || title || '?')[0].toUpperCase()}</div>`; }}
+                    />
+                  : <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', background: 'var(--blush)', fontSize: 36, fontFamily: 'var(--font-display)', color: 'var(--ink)', opacity: 0.7 }}>
+                      {(store || title || '?')[0].toUpperCase()}
+                    </div>
                 }
               </div>
               <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10 }}>
                 <input className="input" placeholder="Item name" value={title} onChange={(e) => setTitle(e.target.value)} />
                 <div style={{ display: "flex", gap: 8 }}>
-                  <input className="input" placeholder="Price" value={price} onChange={(e) => setPrice(e.target.value)} />
+                  <div style={{ display: 'flex', gap: 4, flex: 1 }}>
+                    <select
+                      className="input"
+                      value={currency}
+                      onChange={e => setCurrency(e.target.value)}
+                      style={{ width: 64, flexShrink: 0, paddingRight: 4 }}
+                    >
+                      {['$', '€', '£', '¥', 'C$', 'A$', 'CHF', 'kr', 'zł', '₹'].map(c => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                    <input className="input" placeholder="Price" value={price} onChange={(e) => setPrice(e.target.value)} style={{ flex: 1 }} />
+                  </div>
                   <input className="input" placeholder="Store" value={store} onChange={(e) => setStore(e.target.value)} />
                 </div>
               </div>

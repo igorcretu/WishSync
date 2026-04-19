@@ -129,7 +129,7 @@ export const wishes = {
   },
 
   scrape: (url: string) =>
-    request<{ title: string | null; image: string | null; price: number | null; store: string | null }>(
+    request<{ title: string | null; image: string | null; price: number | null; currency: string | null; store: string | null; _note?: string }>(
       'GET', `/api/wishes/scrape?url=${encodeURIComponent(url)}`
     ),
 
