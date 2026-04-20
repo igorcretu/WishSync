@@ -1737,7 +1737,11 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ me, apiUser, onLogout,
   const [editOpen, setEditOpen] = React.useState(false);
   const [editName, setEditName] = React.useState(me.name);
   const [editNickname, setEditNickname] = React.useState(me.nickname);
-  const [editBirthday, setEditBirthday] = React.useState(apiUser.birthday ?? '');
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const parsedBd = apiUser.birthday?.match(/^(\w{3})\s+(\d{1,2})$/);
+  const [editBdMonth, setEditBdMonth] = React.useState(parsedBd?.[1] ?? '');
+  const [editBdDay, setEditBdDay] = React.useState(parsedBd?.[2] ?? '');
+  const editBirthday = editBdMonth && editBdDay ? `${editBdMonth} ${editBdDay.padStart(2,'0')}` : '';
   const [editError, setEditError] = React.useState('');
   const [editSaving, setEditSaving] = React.useState(false);
 
@@ -1897,7 +1901,18 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ me, apiUser, onLogout,
               </div>
               <div>
                 <label className="label">Birthday (optional)</label>
-                <input className="input" value={editBirthday} onChange={e => setEditBirthday(e.target.value)} placeholder="e.g. Mar 02" />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <select className="input" value={editBdMonth} onChange={e => setEditBdMonth(e.target.value)} style={{ flex: 1 }}>
+                    <option value="">Month</option>
+                    {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                  <select className="input" value={editBdDay} onChange={e => setEditBdDay(e.target.value)} style={{ width: 90 }}>
+                    <option value="">Day</option>
+                    {Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0')).map(d => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
               {editError && <div style={{ color: '#C0392B', fontSize: 13 }}>{editError}</div>}
               <button className="btn btn-primary" onClick={handleSaveDetails} disabled={editSaving}>
