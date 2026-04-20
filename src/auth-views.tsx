@@ -84,11 +84,15 @@ const LoginView: React.FC<{ onSwitch: () => void }> = ({ onSwitch }) => {
   );
 };
 
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
 const RegisterView: React.FC<{ onSwitch: () => void }> = ({ onSwitch }) => {
   const { register } = useAuth();
   const [form, setForm] = React.useState({
-    name: '', nickname: '', email: '', password: '', birthday: '',
+    name: '', nickname: '', email: '', password: '',
   });
+  const [bdMonth, setBdMonth] = React.useState('');
+  const [bdDay, setBdDay] = React.useState('');
   const [error, setError] = React.useState('');
   const [loading, setLoading] = React.useState(false);
 
@@ -99,13 +103,14 @@ const RegisterView: React.FC<{ onSwitch: () => void }> = ({ onSwitch }) => {
     e.preventDefault();
     setError('');
     setLoading(true);
+    const birthday = bdMonth && bdDay ? `${bdMonth} ${bdDay.padStart(2, '0')}` : undefined;
     try {
       await register({
         email: form.email,
         password: form.password,
         name: form.name,
         nickname: form.nickname || form.name,
-        birthday: form.birthday || undefined,
+        birthday,
       });
     } catch (err: any) {
       setError(err.message || 'Something went wrong');
@@ -151,7 +156,18 @@ const RegisterView: React.FC<{ onSwitch: () => void }> = ({ onSwitch }) => {
 
           <div className="field">
             <label className="label">Birthday <span style={{ fontWeight: 400, color: 'var(--ink-muted)' }}>(optional)</span></label>
-            <input className="input" placeholder="Jun 14" value={form.birthday} onChange={set('birthday')} />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <select className="input" value={bdMonth} onChange={e => setBdMonth(e.target.value)} style={{ flex: 1 }}>
+                <option value="">Month</option>
+                {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+              <select className="input" value={bdDay} onChange={e => setBdDay(e.target.value)} style={{ width: 90 }}>
+                <option value="">Day</option>
+                {Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0')).map(d => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {error && <div className="auth-error">{error}</div>}
