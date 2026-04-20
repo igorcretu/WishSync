@@ -896,9 +896,9 @@ div:hover > .img-hover-overlay { opacity: 1 !important; }
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
-  padding: 10px 8px;
-  font-size: 10px;
+  gap: 2px;
+  padding: 8px 4px;
+  font-size: 9px;
   font-weight: 700;
   color: var(--ink-muted);
   flex: 1;
@@ -907,7 +907,7 @@ div:hover > .img-hover-overlay { opacity: 1 !important; }
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 72px;
+  max-width: 64px;
 }
 .mobile-nav-item.active { color: var(--ink); }
 .mobile-nav-item.active svg { opacity: 1; }

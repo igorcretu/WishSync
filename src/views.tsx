@@ -820,11 +820,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ partnerWishes, myWishes, m
           <h2 className="section-title">{partner.name}'s top picks</h2>
           <button className="btn btn-ghost btn-sm" onClick={() => onNav("partner")}>See all →</button>
         </div>
-        <div className="wish-grid">
-          {partnerWishes.filter(w => w.priority === "must" || w.priority === "love").slice(0, 3).map(w => (
-            <WishCard key={w.id} wish={w} mode="partner" me={me} onClick={() => onNav("partner")} />
-          ))}
-        </div>
+        {partnerWishes.filter(w => w.priority === "must" || w.priority === "love").length === 0 ? (
+          <div style={{ color: 'var(--ink-muted)', fontSize: 14, padding: '12px 0' }}>
+            {partner.name} hasn't marked any top picks yet.
+          </div>
+        ) : (
+          <div className="wish-grid">
+            {partnerWishes.filter(w => w.priority === "must" || w.priority === "love").slice(0, 3).map(w => (
+              <WishCard key={w.id} wish={w} mode="partner" me={me} onClick={() => onNav("partner")} />
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="section">
@@ -832,23 +838,29 @@ export const Dashboard: React.FC<DashboardProps> = ({ partnerWishes, myWishes, m
           <h2 className="section-title">Coming up</h2>
           <button className="btn btn-ghost btn-sm" onClick={() => onNav("occasions")}>All occasions →</button>
         </div>
-        <div className="timeline">
-          {occasions.slice(0, 3).map(o => (
-            <div key={o.id} className="timeline-item">
-              <div className="timeline-date">
-                <div className="day">{o.day}</div>
-                <div className="month">{o.month}</div>
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontFamily: "var(--font-display)", fontSize: 20 }}>{o.title}</div>
-                <div style={{ color: "var(--ink-muted)", fontSize: 13 }}>
-                  {o.daysAway} days away · time to plan something good
+        {occasions.length === 0 ? (
+          <div style={{ color: 'var(--ink-muted)', fontSize: 14, padding: '12px 0' }}>
+            No occasions yet — <span onClick={() => onNav("occasions")} style={{ color: 'var(--primary-deep)', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}>add one</span> to get reminders.
+          </div>
+        ) : (
+          <div className="timeline">
+            {occasions.slice(0, 3).map(o => (
+              <div key={o.id} className="timeline-item">
+                <div className="timeline-date">
+                  <div className="day">{o.day}</div>
+                  <div className="month">{o.month}</div>
                 </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: 20 }}>{o.title}</div>
+                  <div style={{ color: "var(--ink-muted)", fontSize: 13 }}>
+                    {o.daysAway} days away · time to plan something good
+                  </div>
+                </div>
+                <button className="btn btn-ghost btn-sm" onClick={() => onNav("occasions")}>Plan</button>
               </div>
-              <button className="btn btn-ghost btn-sm" onClick={() => onNav("occasions")}>Plan</button>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {activityFeed && activityFeed.length > 0 && (
