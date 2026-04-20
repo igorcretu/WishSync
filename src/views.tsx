@@ -421,6 +421,7 @@ export const DetailView: React.FC<DetailViewProps> = ({ wish, mode, me, partner,
   const [editPriority, setEditPriority] = React.useState<Priority>(wish.priority);
   const [editOccasion, setEditOccasion] = React.useState<OccasionTag>(wish.occasion);
   const [editNotes, setEditNotes] = React.useState(wish.notes);
+  const [editCurrency, setEditCurrency] = React.useState(wish.currency ?? '$');
   const [editDiscount, setEditDiscount] = React.useState(wish.discount ?? false);
   const [editImageFile, setEditImageFile] = React.useState<File | null>(null);
   const [editImagePreview, setEditImagePreview] = React.useState<string>('');
@@ -460,6 +461,7 @@ export const DetailView: React.FC<DetailViewProps> = ({ wish, mode, me, partner,
       const updated = await wishApi.update(wish.id, {
         title: editTitle.trim(),
         price: Number(editPrice),
+        currency: editCurrency,
         originalPrice: editOriginalPrice ? Number(editOriginalPrice) : undefined,
         store: editStore.trim() || '—',
         storeUrl: editStoreUrl.trim() || undefined,
@@ -477,6 +479,7 @@ export const DetailView: React.FC<DetailViewProps> = ({ wish, mode, me, partner,
         ...wish,
         title: updated.title,
         price: updated.price,
+        currency: updated.currency ?? editCurrency,
         originalPrice: updated.originalPrice,
         store: updated.store,
         storeUrl: updated.storeUrl,
@@ -682,7 +685,12 @@ export const DetailView: React.FC<DetailViewProps> = ({ wish, mode, me, partner,
               <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
                 <div className="field" style={{ flex: 1 }}>
                   <label className="label">Price</label>
-                  <input className="input" value={editPrice} onChange={e => setEditPrice(e.target.value)} />
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <select className="input" value={editCurrency} onChange={e => setEditCurrency(e.target.value)} style={{ width: 68, flexShrink: 0 }}>
+                      {['$', '€', '£', '¥', 'C$', 'A$', 'CHF', 'kr', 'zł', '₹'].map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    <input className="input" value={editPrice} onChange={e => setEditPrice(e.target.value)} style={{ flex: 1 }} />
+                  </div>
                 </div>
                 <div className="field" style={{ flex: 1 }}>
                   <label className="label">Original price</label>
