@@ -971,21 +971,19 @@ export const AddWishModal: React.FC<AddWishModalProps> = ({ onClose, onAdd }) =>
               <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10 }}>
                 <input className="input" placeholder="Item name" value={title} onChange={(e) => setTitle(e.target.value)} />
                 <div style={{ display: "flex", gap: 8 }}>
-                  <div style={{ display: 'flex', gap: 4, flex: 1 }}>
-                    <select
-                      className="input"
-                      value={currency}
-                      onChange={e => setCurrency(e.target.value)}
-                      style={{ width: 64, flexShrink: 0, paddingRight: 4 }}
-                    >
-                      {['$', '€', '£', '¥', 'C$', 'A$', 'CHF', 'kr', 'zł', '₹'].map(c => (
-                        <option key={c} value={c}>{c}</option>
-                      ))}
-                    </select>
-                    <input className="input" placeholder="Price" value={price} onChange={(e) => setPrice(e.target.value)} style={{ flex: 1 }} />
-                  </div>
-                  <input className="input" placeholder="Store" value={store} onChange={(e) => setStore(e.target.value)} />
+                  <select
+                    className="input"
+                    value={currency}
+                    onChange={e => setCurrency(e.target.value)}
+                    style={{ width: 68, flexShrink: 0 }}
+                  >
+                    {['$', '€', '£', '¥', 'C$', 'A$', 'CHF', 'kr', 'zł', '₹'].map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                  <input className="input" placeholder="Price" value={price} onChange={(e) => setPrice(e.target.value)} style={{ flex: 1 }} />
                 </div>
+                <input className="input" placeholder="Store" value={store} onChange={(e) => setStore(e.target.value)} />
               </div>
             </div>
 
