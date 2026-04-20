@@ -300,7 +300,7 @@ const AppInner: React.FC = () => {
   };
 
   // ---- add wish ----
-  const addWish = async (w: Wish) => {
+  const addWish = async (w: Wish, imageFile?: File) => {
     try {
       const created = await wishApi.create({
         title: w.title,
@@ -317,6 +317,10 @@ const AppInner: React.FC = () => {
         notes: w.notes,
         discount: w.discount ?? false,
       });
+      if (imageFile) {
+        const uploaded = await wishApi.uploadImage(created.id, imageFile);
+        created.imagePath = uploaded.imagePath;
+      }
       setMyWishes(prev => [apiWishToWish(created, user!.id), ...prev]);
       setShowAdd(false);
       showToast('Wish added ✨');

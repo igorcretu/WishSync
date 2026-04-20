@@ -836,7 +836,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ partnerWishes, myWishes, m
 // ---------- Add Wish Modal ----------
 interface AddWishModalProps {
   onClose: () => void;
-  onAdd: (w: Wish) => void;
+  onAdd: (w: Wish, imageFile?: File) => void;
 }
 export const AddWishModal: React.FC<AddWishModalProps> = ({ onClose, onAdd }) => {
   const [step, setStep] = React.useState<"link" | "details">("link");
@@ -844,6 +844,18 @@ export const AddWishModal: React.FC<AddWishModalProps> = ({ onClose, onAdd }) =>
   const [loading, setLoading] = React.useState<boolean>(false);
   const [scrapeError, setScrapeError] = React.useState<string>("");
   const [scrapeImageUrl, setScrapeImageUrl] = React.useState<string>("");
+  const [customImageFile, setCustomImageFile] = React.useState<File | null>(null);
+  const [customImagePreview, setCustomImagePreview] = React.useState<string>("");
+  const imageInputRef = React.useRef<HTMLInputElement>(null);
+  const [isDragging, setIsDragging] = React.useState(false);
+
+  const applyImageFile = (file: File) => {
+    setCustomImageFile(file);
+    const reader = new FileReader();
+    reader.onload = e => setCustomImagePreview(e.target?.result as string);
+    reader.readAsDataURL(file);
+    setScrapeImageUrl('');
+  };
   const [title, setTitle] = React.useState<string>("");
   const [price, setPrice] = React.useState<string>("");
   const [currency, setCurrency] = React.useState<string>("$");
@@ -895,7 +907,7 @@ export const AddWishModal: React.FC<AddWishModalProps> = ({ onClose, onAdd }) =>
       notes,
       reactions: { heart: 0, eyes: 0, gift: 0 },
     };
-    onAdd(w);
+    onAdd(w, customImageFile ?? undefined);
   };
 
   return (
@@ -955,18 +967,49 @@ export const AddWishModal: React.FC<AddWishModalProps> = ({ onClose, onAdd }) =>
               </div>
             )}
             <div style={{ display: "flex", gap: 14, marginBottom: 14 }}>
-              <div style={{ width: 96, height: 96, borderRadius: 14, overflow: "hidden", flexShrink: 0, background: "var(--cream-2)" }}>
-                {scrapeImageUrl
+              <div
+                style={{
+                  width: 96, height: 96, borderRadius: 14, overflow: "hidden", flexShrink: 0,
+                  background: isDragging ? 'var(--blush)' : 'var(--cream-2)',
+                  cursor: 'pointer', position: 'relative',
+                  border: isDragging ? '2px dashed var(--primary)' : '2px dashed transparent',
+                  transition: 'border-color 0.2s, background 0.2s',
+                }}
+                onClick={() => imageInputRef.current?.click()}
+                onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={e => {
+                  e.preventDefault(); setIsDragging(false);
+                  const file = e.dataTransfer.files[0];
+                  if (file?.type.startsWith('image/')) applyImageFile(file);
+                }}
+                onPaste={e => {
+                  const file = Array.from(e.clipboardData.items).find(i => i.type.startsWith('image/'))?.getAsFile();
+                  if (file) applyImageFile(file);
+                }}
+                tabIndex={0}
+                title="Click, drag, or paste an image"
+              >
+                {(customImagePreview || scrapeImageUrl)
                   ? <img
-                      src={scrapeImageUrl}
+                      src={customImagePreview || scrapeImageUrl}
                       alt="preview"
                       style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                      onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; (e.currentTarget.parentElement as HTMLElement).style.display = 'grid'; (e.currentTarget.parentElement as HTMLElement).style.placeItems = 'center'; (e.currentTarget.parentElement as HTMLElement).innerHTML = `<div style="font-size:32px;opacity:0.4">${(store || title || '?')[0].toUpperCase()}</div>`; }}
+                      onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                     />
                   : <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', background: 'var(--blush)', fontSize: 36, fontFamily: 'var(--font-display)', color: 'var(--ink)', opacity: 0.7 }}>
                       {(store || title || '?')[0].toUpperCase()}
                     </div>
                 }
+                <div style={{
+                  position: 'absolute', inset: 0, display: 'grid', placeItems: 'center',
+                  background: 'rgba(0,0,0,0.35)', opacity: 0, transition: 'opacity 0.18s',
+                  fontSize: 22, color: 'white',
+                }} className="img-hover-overlay">
+                  ✏
+                </div>
+                <input ref={imageInputRef} type="file" accept="image/*" style={{ display: 'none' }}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) applyImageFile(f); e.target.value = ''; }} />
               </div>
               <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10 }}>
                 <input className="input" placeholder="Item name" value={title} onChange={(e) => setTitle(e.target.value)} />
