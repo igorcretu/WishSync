@@ -2,7 +2,7 @@
 
 import React from 'react';
 import type { Wish, Person, Occasion, HistoryItem, ViewId, Priority, OccasionTag } from './types';
-import { circles as circleApi, wishes as wishApi, occasions as occasionApi, auth as authApi, invites as invitesApi } from './api';
+import { circles as circleApi, wishes as wishApi, occasions as occasionApi, auth as authApi, invites as invitesApi, imageUrl } from './api';
 import type { ApiCircle, ApiUser, ApiActivityItem } from './api';
 import { CATEGORIES, OCCASION_TAGS, PRIORITY_LABELS, PH } from './data';
 import {
@@ -422,6 +422,16 @@ export const DetailView: React.FC<DetailViewProps> = ({ wish, mode, me, partner,
   const [editOccasion, setEditOccasion] = React.useState<OccasionTag>(wish.occasion);
   const [editNotes, setEditNotes] = React.useState(wish.notes);
   const [editDiscount, setEditDiscount] = React.useState(wish.discount ?? false);
+  const [editImageFile, setEditImageFile] = React.useState<File | null>(null);
+  const [editImagePreview, setEditImagePreview] = React.useState<string>('');
+  const [editIsDragging, setEditIsDragging] = React.useState(false);
+  const editImageInputRef = React.useRef<HTMLInputElement>(null);
+  const applyEditImageFile = (file: File) => {
+    setEditImageFile(file);
+    const reader = new FileReader();
+    reader.onload = e => setEditImagePreview(e.target?.result as string);
+    reader.readAsDataURL(file);
+  };
   const [saving, setSaving] = React.useState(false);
   const [purchasing, setPurchasing] = React.useState(false);
   const [editError, setEditError] = React.useState('');
@@ -459,6 +469,10 @@ export const DetailView: React.FC<DetailViewProps> = ({ wish, mode, me, partner,
         notes: editNotes,
         discount: editDiscount,
       });
+      if (editImageFile) {
+        const uploaded = await wishApi.uploadImage(wish.id, editImageFile);
+        updated.imagePath = uploaded.imagePath;
+      }
       onUpdate?.(wish.id, {
         ...wish,
         title: updated.title,
@@ -471,6 +485,7 @@ export const DetailView: React.FC<DetailViewProps> = ({ wish, mode, me, partner,
         occasion: updated.occasion as OccasionTag,
         notes: updated.notes,
         discount: updated.discount,
+        image: { tint: updated.imageTint ?? wish.image.tint, label: imageUrl(updated.imagePath) || updated.imageLabel || wish.image.label },
       });
       setIsEditing(false);
     } catch (e: any) {
@@ -635,9 +650,34 @@ export const DetailView: React.FC<DetailViewProps> = ({ wish, mode, me, partner,
                   {editError}
                 </div>
               )}
-              <div className="field" style={{ marginBottom: 12 }}>
-                <label className="label">Title</label>
-                <input className="input" value={editTitle} onChange={e => setEditTitle(e.target.value)} />
+              <div style={{ display: 'flex', gap: 14, marginBottom: 14, alignItems: 'flex-start' }}>
+                <div
+                  style={{
+                    width: 80, height: 80, borderRadius: 12, overflow: 'hidden', flexShrink: 0,
+                    background: editIsDragging ? 'var(--blush)' : 'var(--cream-2)',
+                    cursor: 'pointer', position: 'relative',
+                    border: editIsDragging ? '2px dashed var(--primary)' : '2px dashed var(--line)',
+                    transition: 'border-color 0.2s, background 0.2s',
+                  }}
+                  onClick={() => editImageInputRef.current?.click()}
+                  onDragOver={e => { e.preventDefault(); setEditIsDragging(true); }}
+                  onDragLeave={() => setEditIsDragging(false)}
+                  onDrop={e => { e.preventDefault(); setEditIsDragging(false); const f = e.dataTransfer.files[0]; if (f?.type.startsWith('image/')) applyEditImageFile(f); }}
+                  onPaste={e => { const f = Array.from(e.clipboardData.items).find(i => i.type.startsWith('image/'))?.getAsFile(); if (f) applyEditImageFile(f); }}
+                  tabIndex={0}
+                  title="Click, drag, or paste to change image"
+                >
+                  {(editImagePreview || wish.image.label)
+                    ? <img src={editImagePreview || wish.image.label || ''} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', background: 'var(--blush)', fontSize: 28, fontFamily: 'var(--font-display)', color: 'var(--ink)', opacity: 0.7 }}>{wish.title[0]}</div>
+                  }
+                  <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', background: 'rgba(0,0,0,0.35)', opacity: 0, transition: 'opacity 0.18s', fontSize: 18, color: 'white' }} className="img-hover-overlay">✏</div>
+                  <input ref={editImageInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) applyEditImageFile(f); e.target.value = ''; }} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label className="label">Title</label>
+                  <input className="input" value={editTitle} onChange={e => setEditTitle(e.target.value)} />
+                </div>
               </div>
               <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
                 <div className="field" style={{ flex: 1 }}>
