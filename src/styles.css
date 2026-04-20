@@ -457,6 +457,7 @@ input, textarea, select { font-family: inherit; font-size: inherit; color: inher
 .filter-search-wrap {
   position: relative;
   flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
 }
@@ -468,6 +469,7 @@ input, textarea, select { font-family: inherit; font-size: inherit; color: inher
   display: flex;
 }
 .filter-search-wrap .input {
+  width: 100%;
   padding-left: 34px;
   height: 40px;
   font-size: 14px;
@@ -475,6 +477,8 @@ input, textarea, select { font-family: inherit; font-size: inherit; color: inher
 .filter-sort {
   height: 40px;
   font-size: 13px;
+  flex-shrink: 0;
+  width: auto;
   min-width: 168px;
   padding: 0 14px;
   appearance: auto;
