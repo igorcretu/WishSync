@@ -463,6 +463,35 @@ const AppInner: React.FC = () => {
 
   const newCount = partnerWishes.filter(w => !w.reserved).length >= 3 ? 3 : 0;
 
+  // ---- PWA install prompt ----
+  const [installPrompt, setInstallPrompt] = React.useState<Event | null>(null);
+  const [showInstallBanner, setShowInstallBanner] = React.useState(false);
+
+  React.useEffect(() => {
+    if (localStorage.getItem('ws-install-dismissed')) return;
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+      setShowInstallBanner(true);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstall = () => {
+    if (!installPrompt) return;
+    (installPrompt as any).prompt();
+    (installPrompt as any).userChoice.then(() => {
+      setShowInstallBanner(false);
+      localStorage.setItem('ws-install-dismissed', '1');
+    });
+  };
+
+  const dismissInstall = () => {
+    setShowInstallBanner(false);
+    localStorage.setItem('ws-install-dismissed', '1');
+  };
+
   return (
     <div className="app">
       <Sidebar currentView={view} onNav={setView} me={me} newCount={newCount} partnerNickname={effectivePartner.nickname} hasPartner={!!partner} />
@@ -483,6 +512,20 @@ const AppInner: React.FC = () => {
 
       {showAdd && <AddWishModal onClose={() => setShowAdd(false)} onAdd={addWish} />}
       {toast && <div className="toast">{toast}</div>}
+
+      {showInstallBanner && (
+        <div className="install-banner">
+          <div className="install-banner-icon">
+            <svg width="32" height="32" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="var(--primary)"/><path d="M32 32 C 22 22, 14 30, 20 38 C 24 42, 32 46, 32 46 C 32 46, 40 42, 44 38 C 50 30, 42 22, 32 32 Z" fill="#2B2420"/></svg>
+          </div>
+          <div className="install-banner-text">
+            <div className="install-banner-title">Install WishSync</div>
+            <div className="install-banner-sub">Add to your home screen for the best experience</div>
+          </div>
+          <button className="btn btn-primary btn-sm" onClick={handleInstall}>Install</button>
+          <button className="install-banner-close" onClick={dismissInstall}>✕</button>
+        </div>
+      )}
 
       {tweaksOpen && (
         <div className="tweaks-panel">
