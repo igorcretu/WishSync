@@ -141,7 +141,12 @@ const AppInner: React.FC = () => {
   const { user, logout, updateUser } = useAuth();
 
   // ---- state ----
-  const [view, setView] = React.useState<ViewId>(() => (localStorage.getItem('ws-view') as ViewId) || 'partner');
+  const [view, setView] = React.useState<ViewId>(() => {
+    const saved = localStorage.getItem('ws-view') as ViewId | null;
+    // detail and friend require transient state that doesn't survive reload
+    if (!saved || saved === 'detail' || saved === 'friend') return 'dashboard';
+    return saved;
+  });
   const [detailWish, setDetailWish] = React.useState<Wish | null>(null);
   const [detailMode, setDetailMode] = React.useState<'partner' | 'mine'>('partner');
   const [secretWish, setSecretWish] = React.useState<Wish | null>(null);
