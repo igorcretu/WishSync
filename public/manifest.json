@@ -1,12 +1,17 @@
 {
+  "id": "dev.crig.wishsync",
   "name": "WishSync",
   "short_name": "WishSync",
   "description": "Gifting, together. Share wishlists secretly with the people you love.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#FBF6F0",
   "theme_color": "#F6B89A",
   "orientation": "portrait-primary",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["lifestyle", "social"],
   "icons": [
     {
       "src": "/icon-192.png",
@@ -19,6 +24,29 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/dashboard.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Dashboard"
+    },
+    {
+      "src": "/screenshots/wishlist.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Wishlist"
+    },
+    {
+      "src": "/screenshots/desktop.png",
+      "sizes": "1280x800",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Desktop view"
     }
   ]
 }
