@@ -1616,25 +1616,27 @@ export const GroupsView: React.FC<GroupsViewProps> = ({ circles, myId, onCircleC
           <button className="btn btn-primary" onClick={() => setCreating(true)}><IconPlus size={14} /> New circle</button>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 14, marginBottom: 40 }}>
-          {allFriends.map(({ m, c }) => (
-            <button
-              key={m.userId}
-              className="card"
-              style={{ padding: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, cursor: 'pointer', border: 'none', textAlign: 'center', transition: 'transform 0.15s, box-shadow 0.15s' }}
-              onClick={() => onViewMember(c.id, { id: m.userId, name: m.user.name, nickname: m.user.nickname, color: m.user.color, initial: m.user.initial, birthday: m.user.birthday ?? undefined })}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-md)'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = ''; }}
-            >
-              <Avatar person={{ id: m.userId, name: m.user.name, nickname: m.user.nickname, color: m.user.color, initial: m.user.initial, avatarUrl: m.user.avatarPath ? imageUrl(m.user.avatarPath) ?? undefined : undefined }} size="lg" />
-              <div>
-                <div style={{ fontFamily: 'var(--font-display)', fontSize: 18 }}>{m.user.name}</div>
-                <div style={{ fontSize: 12, color: 'var(--ink-muted)' }}>@{m.user.nickname.toLowerCase()}</div>
-              </div>
-              <div className="pill" style={{ background: pillColors[c.type] || 'var(--cream-2)', color: 'var(--ink)', fontSize: 11 }}>{c.name}</div>
-              <div style={{ fontSize: 12, color: 'var(--primary-deep)', fontWeight: 700 }}>View wishlist →</div>
-            </button>
-          ))}
+        <div className="friends-grid" style={{ marginBottom: 40 }}>
+          {allFriends.map(({ m, c }) => {
+            const person = { id: m.userId, name: m.user.name, nickname: m.user.nickname, color: m.user.color, initial: m.user.initial, avatarUrl: m.user.avatarPath ? imageUrl(m.user.avatarPath) ?? undefined : undefined };
+            return (
+              <button
+                key={m.userId}
+                className="card friend-card"
+                onClick={() => onViewMember(c.id, { id: m.userId, name: m.user.name, nickname: m.user.nickname, color: m.user.color, initial: m.user.initial, birthday: m.user.birthday ?? undefined })}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-md)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = ''; }}
+              >
+                <Avatar person={person} size="lg" />
+                <div className="friend-card-name">
+                  <div style={{ fontFamily: 'var(--font-display)', fontSize: 18 }}>{m.user.name}</div>
+                  <div style={{ fontSize: 12, color: 'var(--ink-muted)' }}>@{m.user.nickname.toLowerCase()}</div>
+                </div>
+                <div className="pill friend-card-pill" style={{ background: pillColors[c.type] || 'var(--cream-2)', color: 'var(--ink)', fontSize: 11 }}>{c.name}</div>
+                <div style={{ fontSize: 12, color: 'var(--primary-deep)', fontWeight: 700 }} className="friend-card-cta">View wishlist →</div>
+              </button>
+            );
+          })}
         </div>
       )}
 
@@ -1646,15 +1648,17 @@ export const GroupsView: React.FC<GroupsViewProps> = ({ circles, myId, onCircleC
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 32 }}>
         {circles.map(c => (
           <div key={c.id} className="card" style={{ padding: 20 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div className="pill" style={{ background: pillColors[c.type] || 'var(--cream-2)', color: 'var(--ink)' }}>{pillText[c.type] || c.type}</div>
-                <span style={{ fontFamily: 'var(--font-display)', fontSize: 20 }}>{c.name}</span>
-              </div>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <button className="btn btn-ghost btn-sm" onClick={() => { setRenamingCircle(c); setRenameValue(c.name); }} title="Rename">✏️</button>
-                <button className="btn btn-ghost btn-sm" onClick={() => openInvitePanel(c.id, c.name)}>Invite</button>
-                <button className="btn btn-ghost btn-sm" style={{ color: '#C0392B' }} onClick={() => leaveCircle(c.id, c.name, c.members.find(m => m.userId === myId) !== undefined)}>Leave</button>
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                  <div className="pill" style={{ background: pillColors[c.type] || 'var(--cream-2)', color: 'var(--ink)', flexShrink: 0 }}>{pillText[c.type] || c.type}</div>
+                  <span style={{ fontFamily: 'var(--font-display)', fontSize: 18, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                  <button className="btn btn-ghost btn-sm" onClick={() => { setRenamingCircle(c); setRenameValue(c.name); }} title="Rename">✏️</button>
+                  <button className="btn btn-ghost btn-sm" onClick={() => openInvitePanel(c.id, c.name)}>Invite</button>
+                  <button className="btn btn-ghost btn-sm" style={{ color: '#C0392B' }} onClick={() => leaveCircle(c.id, c.name, c.members.find(m => m.userId === myId) !== undefined)}>Leave</button>
+                </div>
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
