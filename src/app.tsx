@@ -373,7 +373,7 @@ const AppInner: React.FC = () => {
   const renderView = () => {
     switch (view) {
       case 'dashboard':
-        return <Dashboard partnerWishes={partnerWishes} myWishes={myWishes} me={me} partner={effectivePartner} hasPartner={!!partner} occasions={occasionList} activityFeed={activityFeed} onNav={setView} />;
+        return <Dashboard partnerWishes={partnerWishes} myWishes={myWishes} me={me} partner={effectivePartner} hasPartner={!!partner} occasions={occasionList} activityFeed={activityFeed} circles={myCircles} onViewMember={(circleId, person) => { viewMember(circleId, person); setView('friend'); }} onNav={setView} />;
       case 'partner':
         if (!partner) return <EmptyPartnerView onGoToGroups={() => setView('groups')} />;
         return <PartnerList wishes={partnerWishes} partner={effectivePartner} me={me} onOpen={w => openDetail(w, 'partner')} onReserve={handleReserveClick} />;

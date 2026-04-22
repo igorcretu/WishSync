@@ -57,7 +57,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNav, me, newCou
     { id: "dashboard", label: "Home", icon: IconHome },
     { id: "partner", label: hasPartner ? `${partnerNickname}'s list` : "Find your +1", icon: IconHeart },
     { id: "mine", label: "My list", icon: IconGift },
-    { id: "groups", label: "Groups", icon: IconUsers },
+    { id: "groups", label: "Friends", icon: IconUsers },
     { id: "occasions", label: "Occasions", icon: IconCal },
     { id: "history", label: "Purchased", icon: IconClock },
   ];
@@ -124,8 +124,8 @@ export const MobileNav: React.FC<MobileNavProps> = ({ currentView, onNav, partne
     { id: 'dashboard', icon: IconHome, label: 'Home' },
     { id: 'partner', icon: IconHeart, label: hasPartner ? partnerNickname : '+1' },
     { id: 'mine', icon: IconGift, label: 'My list' },
+    { id: 'groups', icon: IconUsers, label: 'Friends' },
     { id: 'occasions', icon: IconCal, label: 'Occasions' },
-    { id: 'history', icon: IconClock, label: 'History' },
     { id: 'profile', icon: IconUser, label: 'Profile' },
   ];
   return (

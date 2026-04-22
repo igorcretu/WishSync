@@ -764,12 +764,19 @@ interface DashboardProps {
   hasPartner: boolean;
   occasions: Occasion[];
   activityFeed?: ApiActivityItem[];
+  circles?: ApiCircle[];
+  onViewMember?: (circleId: string, person: Person) => void;
   onNav: (v: ViewId) => void;
 }
-export const Dashboard: React.FC<DashboardProps> = ({ partnerWishes, myWishes, me, partner, hasPartner, occasions, activityFeed, onNav }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ partnerWishes, myWishes, me, partner, hasPartner, occasions, activityFeed, circles, onViewMember, onNav }) => {
   const nextOccasion = occasions[0];
   const reservedWishes = partnerWishes.filter(w => !!w.reserved);
-  const budgetTotal = reservedWishes.reduce((sum, w) => sum + w.price, 0);
+  const budgetByCurrency = reservedWishes.reduce<Record<string, number>>((acc, w) => {
+    const c = w.currency || '$';
+    acc[c] = (acc[c] || 0) + w.price;
+    return acc;
+  }, {});
+  const budgetTotal = Object.entries(budgetByCurrency).map(([c, amt]) => `${c}${amt.toLocaleString()}`).join(' + ') || '—';
   return (
     <>
       <PageHeader
@@ -809,7 +816,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ partnerWishes, myWishes, m
         </div>
         <div className="dash-tile ink" onClick={() => onNav("history")} style={{ cursor: "pointer" }}>
           <div className="dash-label" style={{ opacity: 0.7 }}>Budget reserved</div>
-          <div className="dash-value">{budgetTotal > 0 ? `$${budgetTotal.toLocaleString()}` : '—'}</div>
+          <div className="dash-value" style={{ fontSize: Object.keys(budgetByCurrency).length > 1 ? 24 : undefined }}>{budgetTotal}</div>
           <div className="dash-sub" style={{ opacity: 0.7 }}>{reservedWishes.length} gift{reservedWishes.length !== 1 ? 's' : ''} claimed from {partner.name}'s list</div>
           <div className="dash-deco">💰</div>
         </div>
@@ -862,6 +869,37 @@ export const Dashboard: React.FC<DashboardProps> = ({ partnerWishes, myWishes, m
           </div>
         )}
       </div>
+
+      {(() => {
+        const friendCircles = (circles || []).filter(c => c.type !== 'couple');
+        const friendMembers = Array.from(
+          new Map(
+            friendCircles.flatMap(c => c.members.filter(m => m.userId !== me.id).map(m => [m.userId, { m, c }]))
+          ).values()
+        );
+        if (!friendMembers.length) return null;
+        return (
+          <div className="section">
+            <div className="section-header">
+              <h2 className="section-title">From your groups</h2>
+              <button className="btn btn-ghost btn-sm" onClick={() => onNav("groups")}>See all →</button>
+            </div>
+            <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+              {friendMembers.map(({ m, c }) => {
+                const person: Person = { id: m.userId, name: m.user.name, nickname: m.user.nickname, color: m.user.color, initial: m.user.initial, avatarUrl: m.user.avatarPath ? imageUrl(m.user.avatarPath) ?? undefined : undefined };
+                return (
+                  <button key={m.userId} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
+                    onClick={() => onViewMember?.(c.id, person)}>
+                    <Avatar person={person} size="lg" />
+                    <div style={{ fontSize: 12, fontWeight: 700, textAlign: 'center' }}>{m.user.name.split(' ')[0]}</div>
+                    <div style={{ fontSize: 11, color: 'var(--ink-muted)' }}>{c.name}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       {activityFeed && activityFeed.length > 0 && (
         <div className="section">
@@ -1551,89 +1589,88 @@ export const GroupsView: React.FC<GroupsViewProps> = ({ circles, myId, onCircleC
   const pillColors: Record<string, string> = { couple: 'var(--blush)', friends: 'var(--butter)' };
   const pillText: Record<string, string> = { couple: 'Couple', friends: 'Friend group' };
 
+  // All non-self members, deduplicated by userId, with their circle info
+  const allFriends = Array.from(
+    new Map(
+      circles.flatMap(c => c.members.filter(m => m.userId !== myId).map(m => [m.userId, { m, c }]))
+    ).values()
+  );
+
   return (
     <>
       {confirmEl}
       <PageHeader
-        eyebrow="Circles"
+        eyebrow="Friends"
         title="Your gifting"
         accent="people."
-        subtitle="Couples and groups you sync wishlists with."
-        actions={<button className="btn btn-primary" onClick={() => setCreating(true)}><IconPlus size={15} /> New circle</button>}
+        subtitle="Everyone you share wishlists with."
+        actions={<button className="btn btn-ghost btn-sm" onClick={() => setCreating(true)}><IconPlus size={14} /> New circle</button>}
       />
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 18 }}>
-        {circles.map(c => {
-          return (
-            <div key={c.id} className="card" style={{ padding: 24 }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
-                <div>
-                  <div className="pill" style={{ background: pillColors[c.type] || 'var(--cream-2)', color: 'var(--ink)' }}>{pillText[c.type] || c.type}</div>
-                  <h3 style={{ fontFamily: "var(--font-display)", fontSize: 28, marginTop: 10 }}>{c.name}</h3>
-                </div>
-                <button
-                  className="btn btn-ghost btn-sm"
-                  style={{ marginTop: 8 }}
-                  onClick={() => { setRenamingCircle(c); setRenameValue(c.name); }}
-                  title="Rename circle"
-                >
-                  ✏️
-                </button>
+      {/* ── People grid ── */}
+      {allFriends.length === 0 ? (
+        <div className="card" style={{ padding: 40, textAlign: 'center', marginBottom: 32 }}>
+          <div style={{ fontSize: 36, marginBottom: 12 }}>👋</div>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, marginBottom: 8 }}>No friends yet</div>
+          <div style={{ color: 'var(--ink-muted)', fontSize: 14, marginBottom: 20 }}>Create a circle and invite someone to get started.</div>
+          <button className="btn btn-primary" onClick={() => setCreating(true)}><IconPlus size={14} /> New circle</button>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 14, marginBottom: 40 }}>
+          {allFriends.map(({ m, c }) => (
+            <button
+              key={m.userId}
+              className="card"
+              style={{ padding: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, cursor: 'pointer', border: 'none', textAlign: 'center', transition: 'transform 0.15s, box-shadow 0.15s' }}
+              onClick={() => onViewMember(c.id, { id: m.userId, name: m.user.name, nickname: m.user.nickname, color: m.user.color, initial: m.user.initial, birthday: m.user.birthday ?? undefined })}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-md)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = ''; }}
+            >
+              <Avatar person={{ id: m.userId, name: m.user.name, nickname: m.user.nickname, color: m.user.color, initial: m.user.initial, avatarUrl: m.user.avatarPath ? imageUrl(m.user.avatarPath) ?? undefined : undefined }} size="lg" />
+              <div>
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: 18 }}>{m.user.name}</div>
+                <div style={{ fontSize: 12, color: 'var(--ink-muted)' }}>@{m.user.nickname.toLowerCase()}</div>
               </div>
-              <div style={{ color: "var(--ink-muted)", fontSize: 13, marginBottom: 12 }}>{c.members.length} member{c.members.length !== 1 ? 's' : ''}</div>
+              <div className="pill" style={{ background: pillColors[c.type] || 'var(--cream-2)', color: 'var(--ink)', fontSize: 11 }}>{c.name}</div>
+              <div style={{ fontSize: 12, color: 'var(--primary-deep)', fontWeight: 700 }}>View wishlist →</div>
+            </button>
+          ))}
+        </div>
+      )}
 
-              {/* Members list */}
-              <div style={{ marginBottom: 16 }}>
-                {c.members.map(m => (
-                  <div key={m.userId} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', borderBottom: '1px dotted var(--line)' }}>
-                    <div className="avatar sm" style={{ background: m.user.color }}>{m.user.initial}</div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600, fontSize: 14 }}>{m.user.name}</div>
-                      <div style={{ fontSize: 12, color: 'var(--ink-muted)' }}>@{m.user.nickname.toLowerCase()}</div>
-                    </div>
-                    {m.userId !== myId && (
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          style={{ fontSize: 12 }}
-                          onClick={() => onViewMember(c.id, { id: m.userId, name: m.user.name, nickname: m.user.nickname, color: m.user.color, initial: m.user.initial, birthday: m.user.birthday ?? undefined })}
-                        >
-                          View list
-                        </button>
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          style={{ fontSize: 12, color: '#C0392B' }}
-                          onClick={() => removeMember(c, m)}
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    )}
-                    {m.userId === myId && (
-                      <div style={{ fontSize: 11, color: 'var(--ink-muted)', fontWeight: 700 }}>you</div>
-                    )}
-                  </div>
-                ))}
+      {/* ── Circle management ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 22 }}>Circles</div>
+        <button className="btn btn-primary btn-sm" onClick={() => setCreating(true)}><IconPlus size={13} /> New</button>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 32 }}>
+        {circles.map(c => (
+          <div key={c.id} className="card" style={{ padding: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div className="pill" style={{ background: pillColors[c.type] || 'var(--cream-2)', color: 'var(--ink)' }}>{pillText[c.type] || c.type}</div>
+                <span style={{ fontFamily: 'var(--font-display)', fontSize: 20 }}>{c.name}</span>
               </div>
-
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-ghost btn-sm" onClick={() => openInvitePanel(c.id, c.name)}>Invite someone</button>
-                <button className="btn btn-ghost btn-sm" style={{ color: '#C0392B' }} onClick={() => leaveCircle(c.id, c.name, true)}>Leave</button>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button className="btn btn-ghost btn-sm" onClick={() => { setRenamingCircle(c); setRenameValue(c.name); }} title="Rename">✏️</button>
+                <button className="btn btn-ghost btn-sm" onClick={() => openInvitePanel(c.id, c.name)}>Invite</button>
+                <button className="btn btn-ghost btn-sm" style={{ color: '#C0392B' }} onClick={() => leaveCircle(c.id, c.name, c.members.find(m => m.userId === myId) !== undefined)}>Leave</button>
               </div>
             </div>
-          );
-        })}
-
-        <button className="card" style={{
-          padding: 24, border: "2px dashed var(--line)", background: "transparent",
-          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-          gap: 12, minHeight: 220, color: "var(--ink-muted)", cursor: "pointer",
-        }} onClick={() => setCreating(true)}>
-          <div style={{ width: 48, height: 48, borderRadius: "50%", background: "var(--cream-2)", display: "grid", placeItems: "center" }}>
-            <IconPlus size={22} />
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {c.members.map(m => (
+                <div key={m.userId} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', background: 'var(--cream-2)', borderRadius: 20 }}>
+                  <div className="avatar" style={{ width: 22, height: 22, fontSize: 10, background: m.user.color }}>{m.user.initial}</div>
+                  <span style={{ fontSize: 13, fontWeight: 600 }}>{m.user.name}</span>
+                  {m.userId === myId && <span style={{ fontSize: 11, color: 'var(--ink-muted)' }}>you</span>}
+                  {m.userId !== myId && (
+                    <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-muted)', fontSize: 13, padding: '0 0 0 2px', lineHeight: 1 }} onClick={() => removeMember(c, m)} title="Remove">×</button>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
-          <span style={{ fontWeight: 700 }}>Start a new circle</span>
-        </button>
+        ))}
       </div>
 
       {/* Rename modal */}
