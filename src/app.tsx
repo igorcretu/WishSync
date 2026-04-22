@@ -90,6 +90,29 @@ function apiOccasionToOccasion(o: any): Occasion {
   };
 }
 
+// ---- Error boundary ----
+
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { error: Error | null }> {
+  constructor(props: any) {
+    super(props);
+    this.state = { error: null };
+  }
+  static getDerivedStateFromError(error: Error) { return { error }; }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', gap: 16, padding: 32, textAlign: 'center', fontFamily: 'var(--font-ui)', background: 'var(--cream)' }}>
+          <svg width="52" height="52" viewBox="0 0 72 72"><rect width="72" height="72" rx="18" fill="var(--primary)"/><path d="M36 36 C 26 26, 18 34, 24 42 C 28 46, 36 50, 36 50 C 36 50, 44 46, 48 42 C 54 34, 46 26, 36 36 Z" fill="#2B2420"/></svg>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 24, color: 'var(--ink)' }}>Something went wrong</div>
+          <div style={{ fontSize: 14, color: 'var(--ink-muted)', maxWidth: 300 }}>The app hit an unexpected error. Tap below to reload.</div>
+          <button className="btn btn-primary" onClick={() => window.location.reload()}>Reload app</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 // ---- main App ----
 
 const App: React.FC = () => {
@@ -110,7 +133,7 @@ const App: React.FC = () => {
 
   if (!user) return <AuthViews />;
 
-  return <AppInner />;
+  return <ErrorBoundary><AppInner /></ErrorBoundary>;
 };
 
 const AppInner: React.FC = () => {
@@ -376,6 +399,36 @@ const AppInner: React.FC = () => {
     setMyCircles(prev => prev.map(c => c.id === updated.id ? updated : c));
   };
 
+  // ---- PWA install prompt ----
+  const [installPrompt, setInstallPrompt] = React.useState<Event | null>(null);
+  const [showInstallBanner, setShowInstallBanner] = React.useState(false);
+
+  React.useEffect(() => {
+    if (localStorage.getItem('ws-install-dismissed')) return;
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+      setShowInstallBanner(true);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstall = () => {
+    if (!installPrompt) return;
+    const prompt = installPrompt as Event & { prompt: () => void; userChoice: Promise<unknown> };
+    prompt.prompt();
+    prompt.userChoice.then(() => {
+      setShowInstallBanner(false);
+      localStorage.setItem('ws-install-dismissed', '1');
+    });
+  };
+
+  const dismissInstall = () => {
+    setShowInstallBanner(false);
+    localStorage.setItem('ws-install-dismissed', '1');
+  };
+
   if (dataLoading) {
     return (
       <div className="app">
@@ -462,35 +515,6 @@ const AppInner: React.FC = () => {
   };
 
   const newCount = partnerWishes.filter(w => !w.reserved).length >= 3 ? 3 : 0;
-
-  // ---- PWA install prompt ----
-  const [installPrompt, setInstallPrompt] = React.useState<Event | null>(null);
-  const [showInstallBanner, setShowInstallBanner] = React.useState(false);
-
-  React.useEffect(() => {
-    if (localStorage.getItem('ws-install-dismissed')) return;
-    const handler = (e: Event) => {
-      e.preventDefault();
-      setInstallPrompt(e);
-      setShowInstallBanner(true);
-    };
-    window.addEventListener('beforeinstallprompt', handler);
-    return () => window.removeEventListener('beforeinstallprompt', handler);
-  }, []);
-
-  const handleInstall = () => {
-    if (!installPrompt) return;
-    (installPrompt as any).prompt();
-    (installPrompt as any).userChoice.then(() => {
-      setShowInstallBanner(false);
-      localStorage.setItem('ws-install-dismissed', '1');
-    });
-  };
-
-  const dismissInstall = () => {
-    setShowInstallBanner(false);
-    localStorage.setItem('ws-install-dismissed', '1');
-  };
 
   return (
     <div className="app">
