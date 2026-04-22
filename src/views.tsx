@@ -1232,15 +1232,19 @@ export const OccasionsView: React.FC<OccasionsViewProps> = ({ occasions, circles
   const [oTitle, setOTitle] = React.useState('');
   const [oDate, setODate] = React.useState('');
   const [oColor, setOColor] = React.useState<'peach' | 'blush' | 'butter' | 'sage'>('peach');
+  const [oIcon, setOIcon] = React.useState('🎁');
   const [oCircleId, setOCircleId] = React.useState('');
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState('');
+
+  const ICONS = ['🎁','🎂','🎄','💕','💝','🎉','💍','🌸','🎓','✈️','🏠','👶','💐','🍾'];
 
   const openAdd = () => {
     setEditTarget(null);
     setOTitle('');
     setODate('');
     setOColor('peach');
+    setOIcon('🎁');
     setOCircleId(circles[0]?.id ?? '');
     setError('');
     setShowModal(true);
@@ -1251,6 +1255,7 @@ export const OccasionsView: React.FC<OccasionsViewProps> = ({ occasions, circles
     setOTitle(o.title);
     setODate(toInputDate(o.date));
     setOColor(o.color);
+    setOIcon(o.icon ?? '🎁');
     setOCircleId(o.circleId);
     setError('');
     setShowModal(true);
@@ -1265,7 +1270,7 @@ export const OccasionsView: React.FC<OccasionsViewProps> = ({ occasions, circles
     const apiDate = toApiDate(oDate);
     try {
       if (editTarget) {
-        const updated = await occasionApi.update(editTarget.id, { title: oTitle.trim(), date: apiDate, color: oColor, circleId: oCircleId });
+        const updated = await occasionApi.update(editTarget.id, { title: oTitle.trim(), date: apiDate, color: oColor, icon: oIcon, circleId: oCircleId });
         const [monthStr, dayStr] = updated.date.split(' ');
         const daysAway = (() => {
           const now = new Date();
@@ -1286,9 +1291,10 @@ export const OccasionsView: React.FC<OccasionsViewProps> = ({ occasions, circles
           daysAway,
           person: updated.personId ?? 'both',
           color: updated.color,
+          icon: updated.icon ?? '🎁',
         });
       } else {
-        const created = await occasionApi.create({ circleId: oCircleId, title: oTitle.trim(), date: apiDate, color: oColor });
+        const created = await occasionApi.create({ circleId: oCircleId, title: oTitle.trim(), date: apiDate, color: oColor, icon: oIcon });
         const [monthStr, dayStr] = created.date.split(' ');
         const daysAway = (() => {
           const now = new Date();
@@ -1309,6 +1315,7 @@ export const OccasionsView: React.FC<OccasionsViewProps> = ({ occasions, circles
           daysAway,
           person: created.personId ?? 'both',
           color: created.color,
+          icon: created.icon ?? '🎁',
         });
       }
       setShowModal(false);
@@ -1343,20 +1350,15 @@ export const OccasionsView: React.FC<OccasionsViewProps> = ({ occasions, circles
       ) : (
         <div className="occasion-card-list">
           {occasions.map(o => {
-            const tagEmoji: Record<string, string> = {
-              'Birthday': '🎂', 'Christmas': '🎄', "Anniversary": '💕',
-              "Valentine's": '💝', 'Just because': '🎁',
-            };
             const colorBg: Record<string, string> = {
               peach: 'var(--peach)', blush: 'var(--blush)',
               butter: 'var(--butter)', sage: 'var(--sage)',
             };
-            const emoji = tagEmoji[o.title] ?? tagEmoji['Just because'];
             const bg = colorBg[o.color] ?? 'var(--butter)';
             const soon = o.daysAway <= 30;
             return (
               <div key={o.id} className="occasion-card">
-                <div className="occasion-icon-circle" style={{ background: bg }}>{emoji}</div>
+                <div className="occasion-icon-circle" style={{ background: bg }}>{o.icon ?? '🎁'}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="occasion-card-name">{o.title}</div>
                   <div className="occasion-card-sub">{o.date}</div>
@@ -1384,6 +1386,24 @@ export const OccasionsView: React.FC<OccasionsViewProps> = ({ occasions, circles
             <div className="field" style={{ marginBottom: 14 }}>
               <label className="label">Date</label>
               <input className="input" type="date" value={oDate} onChange={e => setODate(e.target.value)} />
+            </div>
+            <div className="field" style={{ marginBottom: 14 }}>
+              <label className="label">Icon</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {ICONS.map(em => (
+                  <button
+                    key={em}
+                    onClick={() => setOIcon(em)}
+                    style={{
+                      fontSize: 22, width: 42, height: 42, borderRadius: 12,
+                      background: oIcon === em ? 'var(--primary)' : 'var(--cream-2)',
+                      border: oIcon === em ? '2px solid var(--ink)' : '2px solid transparent',
+                      cursor: 'pointer', display: 'grid', placeItems: 'center',
+                      transition: 'background 0.15s',
+                    }}
+                  >{em}</button>
+                ))}
+              </div>
             </div>
             <div className="field" style={{ marginBottom: 14 }}>
               <label className="label">Color</label>

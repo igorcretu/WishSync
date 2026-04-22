@@ -74,6 +74,7 @@ export interface ApiOccasion {
   date: string;
   personId: string | null;
   color: 'peach' | 'blush' | 'butter' | 'sage';
+  icon: string;
 }
 
 export interface ApiHistoryItem {

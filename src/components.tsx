@@ -146,7 +146,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({ currentView, onNav, partne
     { id: 'mine', icon: IconGift, label: 'My list' },
     { id: 'groups', icon: IconUsers, label: 'Friends' },
     { id: 'occasions', icon: IconCal, label: 'Occasions' },
-    { id: 'profile', icon: IconUser, label: 'Profile' },
+    { id: 'history', icon: IconClock, label: 'History' },
   ];
   return (
     <nav className="mobile-nav">

@@ -87,6 +87,7 @@ function apiOccasionToOccasion(o: any): Occasion {
     daysAway: occasionDaysAway(o.date),
     person: o.personId ?? 'both',
     color: o.color,
+    icon: o.icon ?? '🎁',
   };
 }
 
@@ -221,6 +222,8 @@ const AppInner: React.FC = () => {
   }, [user]);
 
   React.useEffect(() => { localStorage.setItem('ws-view', view); }, [view]);
+
+  const navTo = (v: ViewId) => { setView(v); window.scrollTo({ top: 0, behavior: 'instant' }); };
 
   // Handle PWA shortcuts (?view=X) and share_target (?share_url=X)
   React.useEffect(() => {
@@ -445,7 +448,7 @@ const AppInner: React.FC = () => {
   const renderView = () => {
     switch (view) {
       case 'dashboard':
-        return <Dashboard partnerWishes={partnerWishes} myWishes={myWishes} me={me} partner={effectivePartner} hasPartner={!!partner} occasions={occasionList} activityFeed={activityFeed} circles={myCircles} onViewMember={(circleId, person) => { viewMember(circleId, person); setView('friend'); }} onNav={setView} />;
+        return <Dashboard partnerWishes={partnerWishes} myWishes={myWishes} me={me} partner={effectivePartner} hasPartner={!!partner} occasions={occasionList} activityFeed={activityFeed} circles={myCircles} onViewMember={(circleId, person) => { viewMember(circleId, person); navTo('friend'); }} onNav={navTo} />;
       case 'partner':
         if (!partner) return <EmptyPartnerView onGoToGroups={() => setView('groups')} />;
         return <PartnerList wishes={partnerWishes} partner={effectivePartner} me={me} onOpen={w => openDetail(w, 'partner')} onReserve={handleReserveClick} />;
@@ -518,12 +521,12 @@ const AppInner: React.FC = () => {
 
   return (
     <div className="app">
-      <Sidebar currentView={view} onNav={setView} me={me} newCount={newCount} partnerNickname={effectivePartner.nickname} hasPartner={!!partner} />
+      <Sidebar currentView={view} onNav={navTo} me={me} newCount={newCount} partnerNickname={effectivePartner.nickname} hasPartner={!!partner} />
       <main className="main">
-        <MobileTopBar me={me} onProfileClick={() => setView('profile')} />
+        <MobileTopBar me={me} onProfileClick={() => navTo('profile')} />
         {renderView()}
       </main>
-      <MobileNav currentView={view} onNav={setView} partnerNickname={effectivePartner.nickname} hasPartner={!!partner} />
+      <MobileNav currentView={view} onNav={navTo} partnerNickname={effectivePartner.nickname} hasPartner={!!partner} />
 
       {secretWish && (
         <SecretOverlay

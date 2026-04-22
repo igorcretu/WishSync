@@ -57,6 +57,7 @@ export interface Occasion {
   daysAway: number;
   person: string;
   color: "peach" | "blush" | "butter" | "sage";
+  icon: string;
 }
 
 export interface HistoryItem {

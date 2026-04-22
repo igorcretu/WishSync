@@ -947,7 +947,7 @@ div:hover > .img-hover-overlay { opacity: 1 !important; }
   .mobile-nav { display: flex; }
 
   .main {
-    padding: 20px 16px 88px;
+    padding: 0 16px 88px;
   }
 
   .page-header {
@@ -1087,7 +1087,7 @@ div:hover > .img-hover-overlay { opacity: 1 !important; }
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 0 10px;
+    padding: 8px 0 8px;
     background: var(--cream);
     position: sticky;
     top: 0;
