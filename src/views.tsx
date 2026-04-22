@@ -1336,31 +1336,41 @@ export const OccasionsView: React.FC<OccasionsViewProps> = ({ occasions, partner
         subtitle="Gentle reminders, never pushy."
         actions={<button className="btn btn-primary" onClick={openAdd}><IconPlus size={15} /> Add occasion</button>}
       />
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 18 }}>
-        {occasions.map(o => (
-          <div key={o.id} className={`dash-tile ${o.color}`} style={{ minHeight: 200 }}>
-            <div className="dash-label">In {o.daysAway} days</div>
-            <div style={{ fontFamily: "var(--font-display)", fontSize: 32, margin: "10px 0 4px", lineHeight: 1.1 }}>{o.title}</div>
-            <div className="dash-sub">{o.date}</div>
-            <div style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 10 }}>
-              <div className="members">
-                <Avatar person={partner} size="sm" />
-                {friends.slice(0, 2).map(f => <Avatar key={f.id} person={f} size="sm" />)}
+      {occasions.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: 60, color: 'var(--ink-muted)' }}>
+          No occasions yet. Add one to get reminders before important dates.
+        </div>
+      ) : (
+        <div className="occasion-card-list">
+          {occasions.map(o => {
+            const tagEmoji: Record<string, string> = {
+              'Birthday': '🎂', 'Christmas': '🎄', "Anniversary": '💕',
+              "Valentine's": '💝', 'Just because': '🎁',
+            };
+            const colorBg: Record<string, string> = {
+              peach: 'var(--peach)', blush: 'var(--blush)',
+              butter: 'var(--butter)', sage: 'var(--sage)',
+            };
+            const emoji = tagEmoji[o.title] ?? tagEmoji['Just because'];
+            const bg = colorBg[o.color] ?? 'var(--butter)';
+            const soon = o.daysAway <= 30;
+            return (
+              <div key={o.id} className="occasion-card">
+                <div className="occasion-icon-circle" style={{ background: bg }}>{emoji}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="occasion-card-name">{o.title}</div>
+                  <div className="occasion-card-sub">{o.date}</div>
+                  <div className="occasion-card-actions">
+                    <button className="btn btn-ghost btn-sm" onClick={() => openEdit(o)}>Edit</button>
+                    <button className="btn btn-ghost btn-sm" style={{ color: '#C0392B' }} onClick={() => handleDelete(o)}>Delete</button>
+                  </div>
+                </div>
+                <div className={`occasion-days-badge ${soon ? 'soon' : 'upcoming'}`}>{o.daysAway}d</div>
               </div>
-              <span style={{ fontSize: 12, fontWeight: 700 }}>{1 + friends.slice(0, 2).length} gifters</span>
-            </div>
-            <div style={{ marginTop: 14, display: 'flex', gap: 8 }}>
-              <button className="btn btn-ghost btn-sm" onClick={() => openEdit(o)}>Edit</button>
-              <button className="btn btn-ghost btn-sm" style={{ color: '#C0392B' }} onClick={() => handleDelete(o)}>Delete</button>
-            </div>
-          </div>
-        ))}
-        {occasions.length === 0 && (
-          <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: 60, color: 'var(--ink-muted)' }}>
-            No occasions yet. Add one to get reminders before important dates.
-          </div>
-        )}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       {showModal && (
         <div className="modal-backdrop" onClick={() => setShowModal(false)}>
@@ -1838,8 +1848,11 @@ interface ProfileViewProps {
   onLogout: () => void;
   onUpdateUser: (u: ApiUser) => void;
   onDeleteAccount?: () => void;
+  wishCount?: number;
+  friendCount?: number;
+  occasionCount?: number;
 }
-export const ProfileView: React.FC<ProfileViewProps> = ({ me, apiUser, onLogout, onUpdateUser, onDeleteAccount }) => {
+export const ProfileView: React.FC<ProfileViewProps> = ({ me, apiUser, onLogout, onUpdateUser, onDeleteAccount, wishCount, friendCount, occasionCount }) => {
   const avatarInputRef = React.useRef<HTMLInputElement>(null);
   const [avatarLoading, setAvatarLoading] = React.useState(false);
 
@@ -1972,9 +1985,66 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ me, apiUser, onLogout,
 
   return (
     <>
-      <PageHeader eyebrow="You" title="Your profile." subtitle="How you show up in the gifting world." />
+      {/* Desktop header — hidden on mobile */}
+      <div className="mobile-hide-profile-header">
+        <PageHeader eyebrow="You" title="Your profile." subtitle="How you show up in the gifting world." />
+      </div>
       <div style={{ maxWidth: 600 }}>
-        <div className="card" style={{ padding: 28, display: "flex", alignItems: "center", gap: 20, marginBottom: 20 }}>
+        {/* Mobile hero — centered avatar + name */}
+        <div className="profile-mobile-hero">
+          <div style={{ position: 'relative', display: 'inline-block', marginBottom: 12 }}>
+            <Avatar person={me} size="lg" />
+            <button
+              onClick={() => avatarInputRef.current?.click()}
+              disabled={avatarLoading}
+              style={{
+                position: 'absolute', bottom: -2, right: -2,
+                width: 22, height: 22, borderRadius: '50%',
+                background: 'var(--ink)', color: 'white', border: '2px solid var(--paper)',
+                fontSize: 11, cursor: 'pointer', display: 'grid', placeItems: 'center',
+                opacity: avatarLoading ? 0.5 : 1,
+              }}
+            >{avatarLoading ? '…' : '✏'}</button>
+            <input ref={avatarInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarChange} />
+          </div>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 26 }}>{me.name}</div>
+          <div style={{ color: 'var(--ink-muted)', fontSize: 13, marginTop: 2 }}>
+            {apiUser.email}{apiUser.birthday ? ` · 🎂 ${apiUser.birthday}` : ''}
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+            <button className="btn btn-ghost btn-sm" onClick={onLogout} style={{ color: 'var(--ink-muted)', fontSize: 12 }}>Sign out</button>
+            {apiUser.avatarPath && (
+              <button className="btn btn-ghost btn-sm" style={{ fontSize: 12, color: 'var(--ink-muted)' }} onClick={handleRemoveAvatar} disabled={avatarLoading}>Remove photo</button>
+            )}
+          </div>
+        </div>
+
+        {/* Stat boxes */}
+        {(wishCount !== undefined || friendCount !== undefined || occasionCount !== undefined) && (
+          <div className="profile-stat-row">
+            {wishCount !== undefined && (
+              <div className="profile-stat-box">
+                <div className="profile-stat-num">{wishCount}</div>
+                <div className="profile-stat-lab">Wishes</div>
+              </div>
+            )}
+            {friendCount !== undefined && (
+              <div className="profile-stat-box">
+                <div className="profile-stat-num">{friendCount}</div>
+                <div className="profile-stat-lab">Friends</div>
+              </div>
+            )}
+            {occasionCount !== undefined && (
+              <div className="profile-stat-box">
+                <div className="profile-stat-num">{occasionCount}</div>
+                <div className="profile-stat-lab">Occasions</div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Desktop avatar card — hidden on mobile */}
+        <div className="profile-desktop-card card" style={{ padding: 28, display: "flex", alignItems: "center", gap: 20, marginBottom: 20 }}>
           <div style={{ position: 'relative', flexShrink: 0 }}>
             <Avatar person={me} size="lg" />
             <button
@@ -1991,16 +2061,13 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ me, apiUser, onLogout,
             >
               {avatarLoading ? '…' : '✏'}
             </button>
-            <input ref={avatarInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarChange} />
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ fontFamily: "var(--font-display)", fontSize: 28 }}>{me.name}</div>
             <div style={{ color: "var(--ink-muted)" }}>@{me.nickname.toLowerCase()} · 🎂 {me.birthday}</div>
             <div style={{ fontSize: 13, color: "var(--ink-muted)" }}>{apiUser.email}</div>
             {apiUser.avatarPath && (
-              <button className="btn btn-ghost btn-sm" style={{ marginTop: 6, fontSize: 12, color: 'var(--ink-muted)' }} onClick={handleRemoveAvatar} disabled={avatarLoading}>
-                Remove photo
-              </button>
+              <button className="btn btn-ghost btn-sm" style={{ marginTop: 6, fontSize: 12, color: 'var(--ink-muted)' }} onClick={handleRemoveAvatar} disabled={avatarLoading}>Remove photo</button>
             )}
           </div>
           <button className="btn btn-ghost btn-sm" onClick={onLogout} style={{ color: 'var(--ink-muted)' }}>Sign out</button>

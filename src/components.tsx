@@ -9,6 +9,26 @@ import {
   IconUser, IconLock,
 } from './icons';
 
+interface MobileTopBarProps {
+  me: Person;
+  onProfileClick: () => void;
+}
+export const MobileTopBar: React.FC<MobileTopBarProps> = ({ me, onProfileClick }) => (
+  <div className="mobile-topbar-bar">
+    <div className="mobile-topbar-logo">
+      <div className="mobile-topbar-logo-mark">
+        <svg width="16" height="16" viewBox="0 0 64 64" fill="none">
+          <path d="M32 32 C 22 22, 14 30, 20 38 C 24 42, 32 46, 32 46 C 32 46, 40 42, 44 38 C 50 30, 42 22, 32 32 Z" fill="#2B2420"/>
+        </svg>
+      </div>
+      WishSync
+    </div>
+    <button onClick={onProfileClick} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+      <Avatar person={me} />
+    </button>
+  </div>
+);
+
 interface PlaceholderProps {
   tint?: string;
   label?: string;

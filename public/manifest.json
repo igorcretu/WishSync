@@ -75,6 +75,20 @@
       "label": "Wishlist"
     },
     {
+      "src": "/screenshots/occasions.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Occasions"
+    },
+    {
+      "src": "/screenshots/desktop-dashboard.png",
+      "sizes": "1280x800",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Desktop dashboard"
+    }
+    {
       "src": "/screenshots/desktop.png",
       "sizes": "1280x800",
       "type": "image/png",

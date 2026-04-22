@@ -1,6 +1,6 @@
 import React from 'react';
 import type { ViewId, Wish, Occasion, HistoryItem, Person } from './types';
-import { Sidebar, MobileNav } from './components';
+import { Sidebar, MobileNav, MobileTopBar } from './components';
 import {
   Dashboard, PartnerList, MyList, DetailView, OccasionsView,
   HistoryView, GroupsView, ProfileView, SecretOverlay, AddWishModal,
@@ -442,7 +442,7 @@ const AppInner: React.FC = () => {
           />
         );
       case 'profile':
-        return <ProfileView me={me} apiUser={user!} onLogout={logout} onUpdateUser={updateUser} onDeleteAccount={logout} />;
+        return <ProfileView me={me} apiUser={user!} onLogout={logout} onUpdateUser={updateUser} onDeleteAccount={logout} wishCount={myWishes.length} friendCount={friends.length} occasionCount={occasionList.length} />;
       case 'friend':
         if (!friendView) return null;
         return (
@@ -466,7 +466,10 @@ const AppInner: React.FC = () => {
   return (
     <div className="app">
       <Sidebar currentView={view} onNav={setView} me={me} newCount={newCount} partnerNickname={effectivePartner.nickname} hasPartner={!!partner} />
-      <main className="main">{renderView()}</main>
+      <main className="main">
+        <MobileTopBar me={me} onProfileClick={() => setView('profile')} />
+        {renderView()}
+      </main>
       <MobileNav currentView={view} onNav={setView} partnerNickname={effectivePartner.nickname} hasPartner={!!partner} />
 
       {secretWish && (
