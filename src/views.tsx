@@ -1225,7 +1225,7 @@ interface OccasionsViewProps {
   onEdit: (o: Occasion) => void;
   onDelete: (id: string) => void;
 }
-export const OccasionsView: React.FC<OccasionsViewProps> = ({ occasions, partner, friends, circles, onAdd, onEdit, onDelete }) => {
+export const OccasionsView: React.FC<OccasionsViewProps> = ({ occasions, circles, onAdd, onEdit, onDelete }) => {
   const [confirm, confirmEl] = useConfirm();
   const [showModal, setShowModal] = React.useState(false);
   const [editTarget, setEditTarget] = React.useState<Occasion | null>(null);
