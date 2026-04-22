@@ -199,6 +199,25 @@ const AppInner: React.FC = () => {
 
   React.useEffect(() => { localStorage.setItem('ws-view', view); }, [view]);
 
+  // Handle PWA shortcuts (?view=X) and share_target (?share_url=X)
+  React.useEffect(() => {
+    if (!user) return;
+    const params = new URLSearchParams(window.location.search);
+    const targetView = params.get('view') as ViewId | null;
+    const addWish = params.get('add');
+    const shareUrl = params.get('share_url') || params.get('share_title') || params.get('share_text');
+    if (targetView) setView(targetView);
+    if (addWish === 'true' || shareUrl) {
+      setShowAdd(true);
+      if (shareUrl) {
+        // Pre-fill share URL — store in sessionStorage for AddWishModal to pick up
+        sessionStorage.setItem('ws-share-url', shareUrl);
+      }
+    }
+    // Clean up URL without reload
+    if (params.toString()) window.history.replaceState({}, '', '/');
+  }, [user]);
+
   // ---- theme ----
   React.useEffect(() => {
     const t = THEMES.find(x => x.id === theme) || THEMES[0];

@@ -6,12 +6,45 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
   "background_color": "#FBF6F0",
   "theme_color": "#F6B89A",
   "orientation": "portrait-primary",
   "lang": "en",
   "dir": "ltr",
   "categories": ["lifestyle", "social"],
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
+  "share_target": {
+    "action": "/",
+    "method": "GET",
+    "params": {
+      "url": "share_url",
+      "title": "share_title",
+      "text": "share_text"
+    }
+  },
+  "shortcuts": [
+    {
+      "name": "My Wishlist",
+      "short_name": "My List",
+      "url": "/?view=mine",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Add a Wish",
+      "short_name": "Add Wish",
+      "url": "/?view=mine&add=true",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Occasions",
+      "short_name": "Occasions",
+      "url": "/?view=occasions",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
   "icons": [
     {
       "src": "/icon-192.png",

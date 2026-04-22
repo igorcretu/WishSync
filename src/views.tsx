@@ -937,8 +937,9 @@ interface AddWishModalProps {
   onAdd: (w: Wish, imageFile?: File) => void;
 }
 export const AddWishModal: React.FC<AddWishModalProps> = ({ onClose, onAdd }) => {
-  const [step, setStep] = React.useState<"link" | "details">("link");
-  const [url, setUrl] = React.useState<string>("");
+  const sharedUrl = React.useMemo(() => { const s = sessionStorage.getItem('ws-share-url') || ''; if (s) sessionStorage.removeItem('ws-share-url'); return s; }, []);
+  const [step, setStep] = React.useState<"link" | "details">(sharedUrl ? "link" : "link");
+  const [url, setUrl] = React.useState<string>(sharedUrl);
   const [loading, setLoading] = React.useState<boolean>(false);
   const [scrapeError, setScrapeError] = React.useState<string>("");
   const [scrapeImageUrl, setScrapeImageUrl] = React.useState<string>("");
@@ -962,6 +963,9 @@ export const AddWishModal: React.FC<AddWishModalProps> = ({ onClose, onAdd }) =>
   const [priority, setPriority] = React.useState<Priority>("love");
   const [occasion, setOccasion] = React.useState<OccasionTag>("Just because");
   const [notes, setNotes] = React.useState<string>("");
+
+  // Auto-trigger scrape if opened via share_target
+  React.useEffect(() => { if (sharedUrl) doQuickAdd(); }, []);
 
   const doQuickAdd = async () => {
     if (!url.trim()) { setStep("details"); return; }
