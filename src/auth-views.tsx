@@ -3,8 +3,8 @@ import { useAuth } from './AuthContext';
 
 type AuthScreen = 'login' | 'register';
 
-export const AuthViews: React.FC = () => {
-  const [screen, setScreen] = React.useState<AuthScreen>('login');
+export const AuthViews: React.FC<{ initialScreen?: AuthScreen }> = ({ initialScreen = 'login' }) => {
+  const [screen, setScreen] = React.useState<AuthScreen>(initialScreen);
 
   return screen === 'login'
     ? <LoginView onSwitch={() => setScreen('register')} />
