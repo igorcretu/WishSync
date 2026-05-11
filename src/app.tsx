@@ -7,6 +7,7 @@ import {
   EmptyPartnerView, InviteAcceptView,
 } from './views';
 import { AuthViews } from './auth-views';
+import { LandingPage } from './LandingPage';
 import { useAuth } from './AuthContext';
 import { wishes as wishApi, circles as circleApi, occasions as occasionApi, history as historyApi, imageUrl } from './api';
 import type { ApiCircle, ApiActivityItem } from './api';
@@ -114,25 +115,55 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { err
   }
 }
 
+// ---- router ----
+
+function navigate(to: string) {
+  window.history.pushState({}, '', to);
+  window.dispatchEvent(new Event('locationchange'));
+}
+
+function usePathname(): string {
+  const [path, setPath] = React.useState(window.location.pathname);
+  React.useEffect(() => {
+    const sync = () => setPath(window.location.pathname);
+    window.addEventListener('popstate', sync);
+    window.addEventListener('locationchange', sync);
+    return () => {
+      window.removeEventListener('popstate', sync);
+      window.removeEventListener('locationchange', sync);
+    };
+  }, []);
+  return path;
+}
+
+const APP_VIEWS: ViewId[] = ['dashboard', 'partner', 'mine', 'occasions', 'history', 'groups', 'profile', 'detail', 'friend'];
+
 // ---- main App ----
 
 const App: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
+  const path = usePathname();
 
   if (authLoading) return <div className="auth-screen"><div style={{ fontSize: 24 }}>Loading…</div></div>;
 
-  const inviteMatch = window.location.pathname.match(/^\/invite\/([^/]+)/);
+  const inviteMatch = path.match(/^\/invite\/([^/]+)/);
   if (inviteMatch) {
     if (!user) return <AuthViews />;
     const token = inviteMatch[1];
-    const done = () => {
-      window.history.replaceState(null, '', '/');
-      window.location.reload();
-    };
+    const done = () => { window.history.replaceState(null, '', '/'); window.location.reload(); };
     return <InviteAcceptView token={token} onDone={done} />;
   }
 
-  if (!user) return <AuthViews />;
+  if (!user) {
+    if (path === '/login') return <AuthViews initialScreen="login" />;
+    if (path === '/register') return <AuthViews initialScreen="register" />;
+    return (
+      <LandingPage
+        onSignIn={() => navigate('/login')}
+        onGetStarted={() => navigate('/register')}
+      />
+    );
+  }
 
   return <ErrorBoundary><AppInner /></ErrorBoundary>;
 };
@@ -142,8 +173,9 @@ const AppInner: React.FC = () => {
 
   // ---- state ----
   const [view, setView] = React.useState<ViewId>(() => {
+    const fromUrl = window.location.pathname.replace(/^\//, '') as ViewId;
+    if (APP_VIEWS.includes(fromUrl) && fromUrl !== 'detail' && fromUrl !== 'friend') return fromUrl;
     const saved = localStorage.getItem('ws-view') as ViewId | null;
-    // detail and friend require transient state that doesn't survive reload
     if (!saved || saved === 'detail' || saved === 'friend') return 'dashboard';
     return saved;
   });
@@ -228,7 +260,39 @@ const AppInner: React.FC = () => {
 
   React.useEffect(() => { localStorage.setItem('ws-view', view); }, [view]);
 
-  const navTo = (v: ViewId) => { setView(v); window.scrollTo({ top: 0, behavior: 'instant' }); };
+  // Keep URL in sync with view; on mount fix any non-app URL (e.g. /login after sign-in)
+  React.useEffect(() => {
+    const raw = window.location.pathname.replace(/^\//, '');
+    if (!APP_VIEWS.includes(raw as ViewId)) {
+      window.history.replaceState({}, '', `/${view}`);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Sync view when user presses back / forward
+  React.useEffect(() => {
+    const sync = () => {
+      const raw = window.location.pathname.replace(/^\//, '') as ViewId;
+      if (APP_VIEWS.includes(raw)) {
+        setView(raw);
+      } else {
+        window.history.replaceState({}, '', `/${view}`);
+      }
+    };
+    window.addEventListener('popstate', sync);
+    window.addEventListener('locationchange', sync);
+    return () => {
+      window.removeEventListener('popstate', sync);
+      window.removeEventListener('locationchange', sync);
+    };
+  // view intentionally excluded — we only want to read it when a pop happens
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const navTo = (v: ViewId) => {
+    navigate(`/${v}`);
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  };
 
   // Handle PWA shortcuts (?view=X) and share_target (?share_url=X)
   React.useEffect(() => {
@@ -237,7 +301,7 @@ const AppInner: React.FC = () => {
     const targetView = params.get('view') as ViewId | null;
     const addWish = params.get('add');
     const shareUrl = params.get('share_url') || params.get('share_title') || params.get('share_text');
-    if (targetView) setView(targetView);
+    if (targetView) { navigate(`/${targetView}`); }
     if (addWish === 'true' || shareUrl) {
       setShowAdd(true);
       if (shareUrl) {
@@ -282,7 +346,7 @@ const AppInner: React.FC = () => {
   const openDetail = (w: Wish, mode: 'partner' | 'mine') => {
     setDetailWish(w);
     setDetailMode(mode);
-    setView('detail');
+    navTo('detail');
   };
 
   // ---- reserve ----
@@ -317,7 +381,7 @@ const AppInner: React.FC = () => {
     try {
       await wishApi.remove(id);
       setMyWishes(prev => prev.filter(w => w.id !== id));
-      setView('mine');
+      navTo('mine');
     } catch {
       showToast('Could not delete wish');
     }
@@ -335,7 +399,7 @@ const AppInner: React.FC = () => {
     try {
       setPartnerWishes(prev => prev.filter(w => w.id !== id));
       if (friendView) setFriendView(prev => prev ? { ...prev, wishes: prev.wishes.filter(w => w.id !== id) } : null);
-      setView(detailMode === 'partner' ? 'partner' : 'friend');
+      navTo(detailMode === 'partner' ? 'partner' : 'friend');
       // reload history
       historyApi.list().then(hist => {
         setHistoryList(hist.map(h => ({
@@ -393,7 +457,7 @@ const AppInner: React.FC = () => {
   // ---- group member wishlist ----
   const viewMember = async (circleId: string, person: Person) => {
     setFriendView({ circleId, person, wishes: [], loaded: false });
-    setView('friend');
+    navTo('friend');
     try {
       const wishes = await circleApi.memberWishes(circleId, person.id);
       setFriendView({ circleId, person, wishes: wishes.map(w => apiWishToWish(w, user!.id)), loaded: true });
@@ -455,7 +519,7 @@ const AppInner: React.FC = () => {
       case 'dashboard':
         return <Dashboard partnerWishes={partnerWishes} myWishes={myWishes} me={me} partner={effectivePartner} hasPartner={!!partner} occasions={occasionList} activityFeed={activityFeed} circles={myCircles} onViewMember={(circleId, person) => { viewMember(circleId, person); navTo('friend'); }} onNav={navTo} />;
       case 'partner':
-        if (!partner) return <EmptyPartnerView onGoToGroups={() => setView('groups')} />;
+        if (!partner) return <EmptyPartnerView onGoToGroups={() => navTo('groups')} />;
         return <PartnerList wishes={partnerWishes} partner={effectivePartner} me={me} onOpen={w => openDetail(w, 'partner')} onReserve={handleReserveClick} />;
       case 'mine':
         return <MyList wishes={myWishes} me={me} onOpen={w => openDetail(w, 'mine')} onAdd={() => setShowAdd(true)} partnerName={effectivePartner.name} friendsCount={friends.length} />;
@@ -467,7 +531,7 @@ const AppInner: React.FC = () => {
             me={me}
             partner={effectivePartner}
             friends={friends}
-            onBack={() => setView(detailMode === 'partner' ? 'partner' : 'mine')}
+            onBack={() => navTo(detailMode === 'partner' ? 'partner' : 'mine')}
             onReserve={handleReserveClick}
             onDelete={detailMode === 'mine' ? deleteWish : undefined}
             onUpdate={detailMode === 'mine' ? updateWish : undefined}
@@ -514,7 +578,7 @@ const AppInner: React.FC = () => {
             onOpen={w => openDetail(w, 'partner')}
             onReserve={handleReserveClick}
             backLabel="Back to groups"
-            onBack={() => setView('groups')}
+            onBack={() => navTo('groups')}
           />
         );
       default:

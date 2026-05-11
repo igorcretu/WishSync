@@ -62,10 +62,18 @@
 }
 .hero-meta .members .avatar { border-color: var(--cream); }
 
-/* Hero collage */
+/* Hero collage — padding-top trick gives height when all children are absolute */
 .collage {
-  position: relative; aspect-ratio: 1 / 1.05;
-  max-width: 540px; margin: 0 auto;
+  position: relative;
+  width: 100%;
+  max-width: 540px;
+  margin: 0 auto;
+  align-self: start;
+}
+.collage::before {
+  content: '';
+  display: block;
+  padding-top: 105%;
 }
 .col-card {
   position: absolute; background: var(--paper);
@@ -93,7 +101,7 @@
   position: absolute; background: var(--ink); color: var(--cream);
   padding: 4px 10px; font-size: 10px; font-weight: 800;
   letter-spacing: 0.08em; text-transform: uppercase;
-  border-radius: 4px 0 0 4px; top: 12px; right: -6px;
+  border-radius: 4px 0 0 4px; top: 12px; right: -6px; z-index: 1;
 }
 
 /* Sparkle decorations */
@@ -184,6 +192,12 @@ section.lp { max-width: 1200px; margin: 0 auto; padding: 80px 32px; }
   background: var(--paper); color: var(--ink);
   border-radius: var(--radius); padding: 12px;
   box-shadow: var(--shadow-sm); width: 220px; position: relative;
+  overflow: visible;
+}
+/* ribbon-deco inside feat.ink (overflow:hidden) — keep it within card bounds */
+.feat.ink .mini-wish .ribbon-deco {
+  right: 0;
+  border-radius: 0 var(--radius) 0 4px; z-index: 1;
 }
 .mini-wish .ph-img { aspect-ratio: 5/4; border-radius: 12px; overflow: hidden; margin-bottom: 10px; }
 .mini-wish h5 { font-family: var(--font-display); font-size: 15px; line-height: 1.2; }
@@ -303,13 +317,96 @@ footer.lp-footer {
   display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
 }
 .foot-brand p { font-size: 14px; color: var(--ink-muted); max-width: 320px; }
+.foot-link-btn {
+  display: block; padding: 4px 0; font-size: 14px;
+  color: var(--ink-soft); font-weight: 600;
+  text-align: left; background: none; border: none;
+  cursor: pointer; font-family: inherit;
+}
+.foot-link-btn:hover { color: var(--ink); }
 .foot-bottom {
   display: flex; justify-content: space-between; align-items: center;
   padding-top: 24px; border-top: 1px dotted var(--line);
   font-size: 12px; color: var(--ink-muted); flex-wrap: wrap; gap: 12px;
 }
 
+/* ---- Responsive layout classes (targeted by media queries below) ---- */
+.feat-demo-row {
+  margin-top: auto;
+  display: flex; gap: 20px; align-items: flex-end; flex-wrap: wrap;
+}
+.feat-dash-grid {
+  margin-top: auto;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+}
+.feat-inner-grid {
+  display: grid; grid-template-columns: 1fr 1.4fr; gap: 32px; align-items: center;
+}
+
+/* ---- ≤ 900px: hero collapses to single column ---- */
+@media (max-width: 900px) {
+  .lp-hero { gap: 40px; padding: 56px 24px 32px; }
+  .collage { max-width: 440px; }
+}
+
+/* ---- ≤ 700px: small tablets / large phones ---- */
 @media (max-width: 700px) {
   .lp-nav-links { display: none; }
+  .lp-nav-inner { padding: 14px 20px; }
+
+  section.lp { padding: 60px 20px; }
+  .logo-strip { padding: 12px 20px 44px; }
+  .logo-strip .ls-row { gap: 24px; font-size: 18px; }
+
   .final-cta { padding: 48px 24px; margin: 24px 16px 64px; }
+  footer.lp-footer { padding: 40px 20px 28px; }
+  .foot-grid { grid-template-columns: 1fr 1fr; gap: 28px; }
+}
+
+/* ---- ≤ 480px: phones ---- */
+@media (max-width: 480px) {
+  /* Nav: keep only logo + primary CTA */
+  .lp-nav-cta .btn-ghost { display: none; }
+  .lp-nav-inner { padding: 12px 16px; gap: 16px; }
+
+  /* Hero */
+  .lp-hero { padding: 36px 16px 24px; gap: 28px; }
+  .lp-hero h1 { font-size: clamp(36px, 10vw, 56px); }
+  .lp-hero p.lead { font-size: 16px; }
+  .hero-ctas { gap: 10px; }
+  .hero-ctas .btn-lg { padding: 12px 18px; font-size: 14px; }
+  .collage { max-width: 300px; }
+
+  /* Sections */
+  section.lp { padding: 48px 16px; }
+  .sec-title { font-size: clamp(26px, 7vw, 44px); }
+
+  /* Feature cards */
+  .feat { padding: 20px; min-height: 180px; }
+  .feat h3 { font-size: 22px; }
+  .feat-demo-row { flex-direction: column; align-items: flex-start; }
+  .mini-wish { width: 100%; max-width: 200px; }
+  .feat-inner-grid { grid-template-columns: 1fr; }
+
+  /* Steps */
+  .step { padding: 24px 20px; }
+  .step-num { font-size: 44px; }
+
+  /* Testimonials */
+  .quote { padding: 20px; }
+  .quote::before { font-size: 60px; }
+  .quote p { font-size: 17px; }
+
+  /* Pricing: remove scale so featured card doesn't overflow */
+  .price-card { padding: 24px; }
+  .price-card.featured { transform: none; margin-top: 14px; }
+  .price-amount { font-size: 44px; }
+
+  /* Final CTA */
+  .final-cta { padding: 40px 16px; margin: 16px 12px 48px; border-radius: var(--radius-lg); }
+  .final-cta h2 { font-size: clamp(28px, 8vw, 48px); }
+
+  /* Footer */
+  .foot-grid { grid-template-columns: 1fr; gap: 24px; }
+  footer.lp-footer { padding: 32px 16px 24px; }
 }

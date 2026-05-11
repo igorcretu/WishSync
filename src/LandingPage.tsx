@@ -145,7 +145,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onSignIn, onGetStarted
               Mark any wish "I'm buying this." Your partner sees nothing change.
               Your gifting circle sees it's claimed. Zero duplicates, full surprise.
             </p>
-            <div style={{ marginTop: 'auto', display: 'flex', gap: 20, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+            <div className="feat-demo-row">
               <div className="mini-wish">
                 <div className="ribbon-deco">You reserved</div>
                 <div className="ph-img">
@@ -233,7 +233,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onSignIn, onGetStarted
             <div className="feat-icon" style={{ background: 'var(--peach)' }}>👫</div>
             <h3>Your gifting world, at a glance.</h3>
             <p style={{ maxWidth: 480 }}>A shared dashboard for two — wishes, occasions, recent activity, and your monthly surprise budget. Built for couples, scales to circles of 4, 8, 20.</p>
-            <div style={{ marginTop: 'auto', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+            <div className="feat-dash-grid">
               <div className="dash-tile sage" style={{ padding: 14, minHeight: 0 }}>
                 <div className="dash-label" style={{ fontSize: 11 }}>Theo's wishes</div>
                 <div className="dash-value" style={{ fontSize: 28 }}>14</div>
@@ -251,7 +251,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onSignIn, onGetStarted
 
           {/* Gift history — full-width */}
           <div className="feat span-12">
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 32, alignItems: 'center' }}>
+            <div className="feat-inner-grid">
               <div>
                 <div className="feat-icon">📦</div>
                 <h3>Remember every gift.</h3>
@@ -440,26 +440,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onSignIn, onGetStarted
             <a href="#features">Features</a>
             <a href="#pricing">Pricing</a>
             <a href="#how">How it works</a>
-            <a href="#">Changelog</a>
+            <a href="#stories">Stories</a>
           </div>
           <div className="foot-col">
-            <h5>Company</h5>
-            <a href="#">About</a>
-            <a href="#">Stories</a>
-            <a href="#">Press</a>
-            <a href="#">Careers</a>
+            <h5>Account</h5>
+            <button className="foot-link-btn" onClick={onGetStarted}>Sign up free</button>
+            <button className="foot-link-btn" onClick={onSignIn}>Sign in</button>
           </div>
           <div className="foot-col">
-            <h5>Support</h5>
-            <a href="#">Help center</a>
-            <a href="#">Privacy</a>
-            <a href="#">Terms</a>
-            <a href="#">Contact</a>
+            <h5>Legal</h5>
+            <a href="#" onClick={e => e.preventDefault()} style={{ opacity: 0.45, cursor: 'default' }}>Privacy (soon)</a>
+            <a href="#" onClick={e => e.preventDefault()} style={{ opacity: 0.45, cursor: 'default' }}>Terms (soon)</a>
           </div>
         </div>
         <div className="foot-bottom">
-          <span>© 2026 WishSync, Inc. Made with ♥ in Brooklyn.</span>
-          <span>Never sells your data. Never spams your gifters.</span>
+          <span>© 2026 WishSync. Made with ♥</span>
+          <span>No ads. No data selling. No spam.</span>
         </div>
       </footer>
     </div>
