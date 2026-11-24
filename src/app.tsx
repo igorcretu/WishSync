@@ -6,7 +6,7 @@ import {
   HistoryView, GroupsView, ProfileView, SecretOverlay, AddWishModal,
   EmptyPartnerView, InviteAcceptView,
 } from './views';
-import { AuthViews } from './auth-views';
+import { AuthViews, ResetPasswordView } from './auth-views';
 import { LandingPage } from './LandingPage';
 import { useAuth } from './AuthContext';
 import { wishes as wishApi, circles as circleApi, occasions as occasionApi, history as historyApi, imageUrl } from './api';
@@ -145,6 +145,16 @@ const App: React.FC = () => {
   const path = usePathname();
 
   if (authLoading) return <div className="auth-screen"><div style={{ fontSize: 24 }}>Loading…</div></div>;
+
+  const resetMatch = path.match(/^\/reset-password\/([^/]+)/);
+  if (resetMatch) {
+    const token = resetMatch[1];
+    const done = () => {
+      window.history.replaceState(null, '', '/');
+      window.location.reload();
+    };
+    return <ResetPasswordView token={token} onDone={done} />;
+  }
 
   const inviteMatch = path.match(/^\/invite\/([^/]+)/);
   if (inviteMatch) {

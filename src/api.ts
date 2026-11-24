@@ -112,6 +112,11 @@ export const auth = {
 
   deleteAccount: (password: string) => request<void>('DELETE', '/api/auth/me', { password }),
 
+  forgotPassword: (email: string) => request<{ ok: true }>('POST', '/api/auth/forgot-password', { email }),
+
+  resetPassword: (token: string, password: string) =>
+    request<{ ok: true }>('POST', `/api/auth/reset-password/${token}`, { password }),
+
   uploadAvatar: async (file: File): Promise<ApiUser> => {
     const token = getToken();
     const form = new FormData();
